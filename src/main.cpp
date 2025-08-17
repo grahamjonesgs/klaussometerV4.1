@@ -1,0 +1,459 @@
+/* Set ESP32 type to ESPS3 Dev Module
+ lvgl 8.3.6, GFX Lib Arduino 1.50, TAMC GT911 1.0.2, Squareline 1.4.0 and esp32 3.3.
+
+n Arduino IDE Tools menu:
+Board: ESP32 Dev Module
+Flash Size: 16M Flash
+Flash Mode QIO 80Mhz
+Partition Scheme: 16MB (2MB App/...)
+PSRAM: OPI PSRAM
+Events Core 1
+Arduino Core 0
+*/
+
+#include <klaussometer.h>
+#include <lvgl.h>  // Version 8.4 tested
+#include "ui.h"
+#include <Arduino_GFX_Library.h>
+#include <TAMC_GT911.h>
+#include <Wire.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <ArduinoMqttClient.h>
+#include <HTTPClient.h>
+#include "time.h"
+#include "klaussometer.h"
+#include "wifi_user.h"
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <ArduinoJson.h>
+#include <Preferences.h>
+#include <globals.h>
+
+// Create network objects
+WiFiClient espClient;
+MqttClient mqttClient(espClient);
+WiFiUDP ntpUDP;
+HTTPClient httpClientWeather;
+HTTPClient httpClientUV;
+HTTPClient httpClientSolar;
+
+// Global variables
+time_t statusChangeTime = 0;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", TIME_OFFSET, 60000);
+void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
+Weather weather = { 0.0, 0.0, 0.0, 0.0, 0.0, false, 0, 0, "", "", "--:--:--", "--:--:--" };
+Solar solar = { 0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0 };
+Readings readings[]{ READINGS_ARRAY };
+Preferences storage;
+int numberOfReadings= sizeof(readings) / sizeof(readings[0]);
+
+// Status messages
+char statusMessage[CHAR_LEN];
+bool statusMessageUpdated = false;
+
+// For Backlight PWM
+const int PWMFreq = 5000;
+const int PWMChannel = 4;
+const int PWMResolution = 10;
+const int MAX_DUTY_CYCLE = (int)(pow(2, PWMResolution) - 1);
+const int day_duty = 0;
+const int night_duty = MAX_DUTY_CYCLE * 0.97;
+
+// Screen config
+Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
+  40 /* DE */, 41 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
+  45 /* R0 */, 48 /* R1 */, 47 /* R2 */, 21 /* R3 */, 14 /* R4 */,
+  5 /* G0 */, 6 /* G1 */, 7 /* G2 */, 15 /* G3 */, 16 /* G4 */, 4 /* G5 */,
+  8 /* B0 */, 3 /* B1 */, 46 /* B2 */, 9 /* B3 */, 1 /* B4 */,
+  0 /* hsync_polarity */, 40 /* hsync_front_porch */, 8 /* hsync_pulse_width was 48 */, 128 /* hsync_back_porch */,
+  1 /* vsync_polarity */, 13 /* vsync_front_porch */, 8 /* vsync_pulse_width was 3 */, 45 /* vsync_back_porch */,
+  1 /* pclk_active_neg */, 12000000 /*was 16000000*/ /* prefer_speed */);
+Arduino_RGB_Display *gfx_new = new Arduino_RGB_Display(
+  1024 /* width */, 600 /* height */, rgbpanel);
+
+// Touch config
+TAMC_GT911 ts = TAMC_GT911(I2C_SDA_PIN, I2C_SCL_PIN, TOUCH_INT, TOUCH_RST, 1024, 600);
+int touch_last_x = 0;
+int touch_last_y = 0;
+
+// Screen setting
+static uint32_t screenWidth = SCREEN_W;
+static uint32_t screenHeight = SCREEN_H;
+static lv_disp_draw_buf_t draw_buf;
+static lv_color_t *disp_draw_buf;
+static lv_disp_drv_t disp_drv;
+
+// main
+void setup_wifi();
+void mqtt_connect();
+void time_init();
+void receive_mqtt_messages_t(void *pvParams);
+void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
+void set_solar_values();
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Starting Klaussometer 4.0 Display");
+
+  pin_init();
+  touch_init();
+
+  // Init Display
+  gfx_new->begin();
+  gfx_new->fillScreen(BLACK);
+  lv_init();
+  screenWidth = gfx_new->width();
+  screenHeight = gfx_new->height();
+  disp_draw_buf = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * screenWidth * 10, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+
+  // Create display buffer
+  if (!disp_draw_buf) {
+    Serial.println("LVGL disp_draw_buf allocate failed!");
+  } else {
+    lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, screenWidth * 10);
+
+    /* Initialize the display */
+    lv_disp_drv_init(&disp_drv);
+    disp_drv.hor_res = screenWidth;
+    disp_drv.ver_res = screenHeight;
+    disp_drv.flush_cb = my_disp_flush;
+    disp_drv.draw_buf = &draw_buf;
+    lv_disp_drv_register(&disp_drv);
+
+    /* Initialize the input device driver */
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.read_cb = touch_read;
+    lv_indev_drv_register(&indev_drv);
+
+    ui_init();
+    lv_timer_handler();
+
+    // Set the initial values
+    lv_label_set_text(ui_RoomName1, readings[0].description);
+    lv_label_set_text(ui_RoomName2, readings[1].description);
+    lv_label_set_text(ui_RoomName3, readings[2].description);
+    lv_label_set_text(ui_RoomName4, readings[3].description);
+    lv_label_set_text(ui_RoomName5, readings[4].description);
+    lv_arc_set_value(ui_TempArc1, readings[0].currentValue);
+    lv_arc_set_value(ui_TempArc2, readings[1].currentValue);
+    lv_arc_set_value(ui_TempArc3, readings[2].currentValue);
+    lv_arc_set_value(ui_TempArc4, readings[3].currentValue);
+    lv_arc_set_value(ui_TempArc5, readings[4].currentValue);
+
+    lv_obj_add_flag(ui_TempArc1, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc2, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc3, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc4, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc5, LV_OBJ_FLAG_HIDDEN);
+
+    lv_label_set_text(ui_TempLabel1, readings[0].output);
+    lv_label_set_text(ui_TempLabel2, readings[1].output);
+    lv_label_set_text(ui_TempLabel3, readings[2].output);
+    lv_label_set_text(ui_TempLabel4, readings[3].output);
+    lv_label_set_text(ui_TempLabel5, readings[4].output);
+    lv_label_set_text(ui_Direction1, "");
+    lv_label_set_text(ui_Direction2, "");
+    lv_label_set_text(ui_Direction3, "");
+    lv_label_set_text(ui_Direction4, "");
+    lv_label_set_text(ui_Direction5, "");
+    lv_label_set_text(ui_BatteryLabel5, "");
+
+    lv_label_set_text(ui_HumidLabel1, readings[5].output);
+    lv_label_set_text(ui_HumidLabel2, readings[6].output);
+    lv_label_set_text(ui_HumidLabel3, readings[7].output);
+    lv_label_set_text(ui_HumidLabel4, readings[8].output);
+    lv_label_set_text(ui_HumidLabel5, readings[9].output);
+
+    lv_label_set_text(ui_FCConditions, "Pending");
+    lv_label_set_text(ui_FCWindSpeed, "Pending");
+    lv_label_set_text(ui_FCUpdateTime, "Pending");
+    lv_label_set_text(ui_UVUpdateTime, "Pending");
+    lv_label_set_text(ui_TempLabelFC, "--");
+    lv_label_set_text(ui_UVLabel, "--");
+
+    lv_arc_set_value(ui_BatteryArc, 0);
+    lv_label_set_text(ui_BatteryLabel, "--");
+    lv_arc_set_value(ui_SolarArc, 0);
+    lv_label_set_text(ui_SolarLabel, "--");
+    lv_arc_set_value(ui_UsingArc, 0);
+    lv_label_set_text(ui_UsingLabel, "--");
+    lv_label_set_text(ui_ChargingLabel, "");
+    lv_label_set_text(ui_AsofTimeLabel, "Values as of --:--:--");
+    lv_label_set_text(ui_ChargingTime, "");
+    lv_label_set_text(ui_SolarMinMax, "");
+
+    lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+    lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+    lv_obj_set_style_text_color(ui_WeatherStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+    lv_obj_set_style_text_color(ui_SolarStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+
+    // Set to night settings at first
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container1, lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container2, lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
+
+    lv_label_set_text(ui_GridBought, "Bought\nToday - Pending\nThis Month - Pending");
+
+    lv_label_set_text(ui_StatusMessage, "Starting Wifi");
+    lv_timer_handler();  // Run GUI
+    lv_timer_handler();  // Run GUI
+
+    lv_label_set_text(ui_StatusMessage, "Connecting to server");
+    lv_timer_handler();  // Run GUI
+    lv_label_set_text(ui_StatusMessage, "Successfully connected to server");
+    lv_timer_handler();  // Run GUI
+
+    setup_wifi();
+    time_init();
+    pin_init();
+    touch_init();
+    mqtt_connect();
+
+
+    // Start tasks
+    xTaskCreatePinnedToCore(receive_mqtt_messages_t, "mqtt", 16384, NULL, 4, NULL, 0);
+    xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 1);
+  }
+}
+
+void loop() {
+  char tempString[CHAR_LEN];
+  char timeString[CHAR_LEN];
+
+  delay(50);
+  lv_timer_handler();  // Run GUI
+
+  // Update values
+  lv_arc_set_value(ui_TempArc1, readings[0].currentValue);
+  if (readings[0].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc1, LV_OBJ_FLAG_HIDDEN); }
+  lv_arc_set_value(ui_TempArc2, readings[1].currentValue);
+  if (readings[1].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc2, LV_OBJ_FLAG_HIDDEN); }
+  lv_arc_set_value(ui_TempArc3, readings[2].currentValue);
+  if (readings[2].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc3, LV_OBJ_FLAG_HIDDEN); }
+  lv_arc_set_value(ui_TempArc4, readings[3].currentValue);
+  if (readings[3].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc4, LV_OBJ_FLAG_HIDDEN); }
+  lv_arc_set_value(ui_TempArc5, readings[4].currentValue);
+  if (readings[4].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc5, LV_OBJ_FLAG_HIDDEN); }
+
+  lv_label_set_text(ui_TempLabel1, readings[0].output);
+
+  lv_label_set_text(ui_TempLabel2, readings[1].output);
+  lv_label_set_text(ui_TempLabel3, readings[2].output);
+  lv_label_set_text(ui_TempLabel4, readings[3].output);
+  lv_label_set_text(ui_TempLabel5, readings[4].output);
+
+  lv_label_set_text(ui_HumidLabel1, readings[5].output);
+  lv_label_set_text(ui_HumidLabel2, readings[6].output);
+  lv_label_set_text(ui_HumidLabel3, readings[7].output);
+  lv_label_set_text(ui_HumidLabel4, readings[8].output);
+  lv_label_set_text(ui_HumidLabel5, readings[9].output);
+
+  snprintf(tempString, CHAR_LEN, "%c", readings[0].changeChar);
+  lv_label_set_text(ui_Direction1, tempString);
+  snprintf(tempString, CHAR_LEN, "%c", readings[1].changeChar);
+  lv_label_set_text(ui_Direction2, tempString);
+  snprintf(tempString, CHAR_LEN, "%c", readings[2].changeChar);
+  lv_label_set_text(ui_Direction3, tempString);
+  snprintf(tempString, CHAR_LEN, "%c", readings[3].changeChar);
+  lv_label_set_text(ui_Direction4, tempString);
+  snprintf(tempString, CHAR_LEN, "%c", readings[4].changeChar);
+  lv_label_set_text(ui_Direction5, tempString);
+
+
+  // Battery updates
+  if (readings[10].currentValue > BATTERY_OK) {
+    snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_GOOD);
+    lv_label_set_text(ui_BatteryLabel5, tempString);
+    lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+  } else {
+    if (readings[10].currentValue > BATTERY_BAD) {
+      snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_OK);
+      lv_label_set_text(ui_BatteryLabel5, tempString);
+      lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+    } else {
+      if (readings[10].currentValue > BATTERY_CRITICAL) {
+        snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_BAD);
+        lv_label_set_text(ui_BatteryLabel5, tempString);
+        lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN);
+      } else {
+        if (readings[10].readingIndex != 0) {
+          snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_CRITICAL);
+          lv_label_set_text(ui_BatteryLabel5, tempString);
+          lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+        }
+      }
+    }
+  }
+
+
+  // Update UV
+  if (weather.UVupdateTime > 0) {
+    snprintf(tempString, CHAR_LEN, "Updated %s", weather.UV_time_string);
+    lv_label_set_text(ui_UVUpdateTime, tempString);
+    snprintf(tempString, CHAR_LEN, "%2.1f", weather.UV);
+    lv_label_set_text(ui_UVLabel, tempString);
+    lv_arc_set_value(ui_UVArc, weather.UV * 10);
+
+    lv_obj_set_style_arc_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)), LV_PART_INDICATOR | LV_STATE_DEFAULT);  // Set arc to color
+    lv_obj_set_style_bg_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)), LV_PART_KNOB | LV_STATE_DEFAULT);        // Set arc to color
+  }
+
+  // Update weather values
+  if (weather.updateTime > 0) {
+    lv_label_set_text(ui_FCConditions, weather.description);
+    snprintf(tempString, CHAR_LEN, "Updated %s", weather.weather_time_string);
+    lv_label_set_text(ui_FCUpdateTime, tempString);
+    snprintf(tempString, CHAR_LEN, "Wind %2.0f km/h %s", weather.windSpeed, weather.windDir);
+    lv_label_set_text(ui_FCWindSpeed, tempString);
+
+    lv_arc_set_value(ui_TempArcFC, weather.temperature);
+
+    snprintf(tempString, CHAR_LEN, "%2.1f", weather.temperature);
+    lv_label_set_text(ui_TempLabelFC, tempString);
+
+    // Set min max if outside the expected values
+    if (weather.temperature < weather.minTemp) {
+      weather.minTemp = weather.temperature;
+    }
+    if (weather.temperature > weather.maxTemp) {
+      weather.maxTemp = weather.temperature;
+    }
+  }
+
+  if (weather.updateTime > 0) {
+    snprintf(tempString, CHAR_LEN, "Min\n%2.0fC", weather.minTemp);
+    lv_label_set_text(ui_FCMin, tempString);
+    snprintf(tempString, CHAR_LEN, "Max\n%2.0fC", weather.maxTemp);
+    lv_label_set_text(ui_FCMax, tempString);
+    lv_arc_set_range(ui_TempArcFC, weather.minTemp, weather.maxTemp);
+  }
+
+  // Update solar values
+  set_solar_values();
+  if (now() - solar.updateTime > 2 * SOLAR_UPDATE_INTERVAL) {
+    lv_obj_set_style_text_color(ui_SolarStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+  } else {
+    lv_obj_set_style_text_color(ui_SolarStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+  }
+  if (now() - weather.updateTime > 2 * WEATHER_UPDATE_INTERVAL) {
+    lv_obj_set_style_text_color(ui_WeatherStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+  } else {
+    lv_obj_set_style_text_color(ui_WeatherStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+  } else {
+    lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+  }
+
+  // Remove old status messages
+  if (statusChangeTime + STATUS_MESSAGE_TIME < now()) {
+    lv_label_set_text(ui_StatusMessage, "");
+  }
+
+  // Display new status message
+  if (statusMessageUpdated) {
+    statusMessageUpdated = false;
+    lv_label_set_text(ui_StatusMessage, statusMessage);
+    statusChangeTime = now();
+  }
+
+  // Update time and screen brightness
+  timeClient.getFormattedTime().toCharArray(timeString, CHAR_LEN);
+  lv_label_set_text(ui_Time, timeString);
+
+
+  if (!weather.isDay) {
+    ledcWrite(PWMChannel, night_duty);
+    set_basic_text_color(lv_color_hex(COLOR_WHITE));
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container1, lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container2, lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
+
+  } else {
+    ledcWrite(PWMChannel, day_duty);
+    set_basic_text_color(lv_color_hex(COLOR_BLACK));
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container1, lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container2, lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
+  }
+
+  // Invalidate readings if too old
+  for (int i = 0; i < sizeof(readings) / sizeof(readings[0]); i++) {
+    if ((millis() > readings[i].lastMessageTime + (MAX_NO_MESSAGE_SEC * 1000)) && (strcmp(readings[i].output, NO_READING) != 0) && (readings[i].changeChar != CHAR_NO_MESSAGE)) {
+      readings[i].changeChar = CHAR_NO_MESSAGE;
+      snprintf(readings[i].output, 10, NO_READING);
+      readings[i].currentValue = 0.0;
+    }
+  }
+}
+
+// Flush function for LVGL
+void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
+  uint32_t w = (area->x2 - area->x1 + 1);
+  uint32_t h = (area->y2 - area->y1 + 1);
+
+#if (LV_COLOR_16_SWAP != 0)
+  gfx_new->draw16bitBeRGBBitmap(area->x1, area->y1, (uint16_t *)&color_p->full, w, h);
+#else
+  gfx_new->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)&color_p->full, w, h);
+#endif
+
+  lv_disp_flush_ready(disp);
+}
+
+// Initialise pins for touch and backlight
+void pin_init() {
+  pinMode(TFT_BL, OUTPUT);
+  pinMode(TOUCH_RST, OUTPUT);
+
+
+  //(Replaced with ledcAttachChannel in ESP 3.0)
+  ledcSetup(PWMChannel, PWMFreq, PWMResolution);
+  ledcAttachPin(TFT_BL, PWMChannel); 
+
+  /*ledcAttachChannel(TFT_BL, PWMFreq, PWMResolution, PWMChannel); */
+
+  ledcWrite(PWMChannel, night_duty);  // Start dim
+
+  delay(100);
+  digitalWrite(TOUCH_RST, LOW);
+  delay(1000);
+  digitalWrite(TOUCH_RST, HIGH);
+  delay(1000);
+  digitalWrite(TOUCH_RST, LOW);
+  delay(1000);
+  digitalWrite(TOUCH_RST, HIGH);
+  delay(1000);
+}
+
+// Initialise touch screen
+void touch_init(void) {
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  ts.begin();
+  ts.setRotation(TOUCH_ROTATION);
+}
+
+
+void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
+  ts.read();
+  if (ts.isTouched) {
+    touch_last_x = map(ts.points[0].x, 0, 1024, 0, SCREEN_W);
+    touch_last_y = map(ts.points[0].y, 0, 750, 0, SCREEN_H);
+    data->point.x = touch_last_x;
+    data->point.x = touch_last_x;
+    data->state = LV_INDEV_STATE_PR;
+
+    ts.isTouched = false;
+  } else {
+    data->point.x = touch_last_x;
+    data->point.x = touch_last_x;
+    data->state = LV_INDEV_STATE_REL;
+  }
+}
