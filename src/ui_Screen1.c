@@ -5,7 +5,7 @@
 
 #include "ui.h"
 
-lv_obj_t *ui_Screen1 = NULL;lv_obj_t *ui_Container1 = NULL;lv_obj_t *ui_Container2 = NULL;lv_obj_t *ui_TempArc1 = NULL;lv_obj_t *ui_TempArc2 = NULL;lv_obj_t *ui_TempArc3 = NULL;lv_obj_t *ui_TempArc4 = NULL;lv_obj_t *ui_TempLabel1 = NULL;lv_obj_t *ui_TempLabel2 = NULL;lv_obj_t *ui_TempLabel3 = NULL;lv_obj_t *ui_TempLabel4 = NULL;lv_obj_t *ui_RoomName1 = NULL;lv_obj_t *ui_RoomName2 = NULL;lv_obj_t *ui_RoomName3 = NULL;lv_obj_t *ui_RoomName4 = NULL;lv_obj_t *ui_StatusMessage = NULL;lv_obj_t *ui_HumidLabel1 = NULL;lv_obj_t *ui_HumidLabel3 = NULL;lv_obj_t *ui_HumidLabel4 = NULL;lv_obj_t *ui_HumidLabel2 = NULL;lv_obj_t *ui_Time = NULL;lv_obj_t *ui_TextRooms = NULL;lv_obj_t *ui_TempArcFC = NULL;lv_obj_t *ui_TempLabelFC = NULL;lv_obj_t *ui_TextForecastName = NULL;lv_obj_t *ui_FCConditions = NULL;lv_obj_t *ui_FCWindSpeed = NULL;lv_obj_t *ui_FCUpdateTime = NULL;lv_obj_t *ui_BatteryArc = NULL;lv_obj_t *ui_BatteryLabel = NULL;lv_obj_t *ui_TextBattery = NULL;lv_obj_t *ui_SolarArc = NULL;lv_obj_t *ui_SolarLabel = NULL;lv_obj_t *ui_TextSolar = NULL;lv_obj_t *ui_UsingArc = NULL;lv_obj_t *ui_TextUsing = NULL;lv_obj_t *ui_UsingLabel = NULL;lv_obj_t *ui_ChargingLabel = NULL;lv_obj_t *ui_AsofTimeLabel = NULL;lv_obj_t *ui_ChargingTime = NULL;lv_obj_t *ui_TextKlaussometer = NULL;lv_obj_t *ui_WiFiStatus = NULL;lv_obj_t *ui_ServerStatus = NULL;lv_obj_t *ui_WeatherStatus = NULL;lv_obj_t *ui_SolarStatus = NULL;lv_obj_t *ui_SolarMinMax = NULL;lv_obj_t *ui_GridBought = NULL;lv_obj_t *ui_TempArc5 = NULL;lv_obj_t *ui_TempLabel5 = NULL;lv_obj_t *ui_RoomName5 = NULL;lv_obj_t *ui_FCMin = NULL;lv_obj_t *ui_FCMax = NULL;lv_obj_t *ui_HumidLabel5 = NULL;lv_obj_t *ui_Direction1 = NULL;lv_obj_t *ui_Direction2 = NULL;lv_obj_t *ui_Direction3 = NULL;lv_obj_t *ui_Direction4 = NULL;lv_obj_t *ui_Direction5 = NULL;lv_obj_t *ui_UVArc = NULL;lv_obj_t *ui_UVLabel = NULL;lv_obj_t *ui_TextUV = NULL;lv_obj_t *ui_BatteryLabel5 = NULL;lv_obj_t *ui_UVUpdateTime = NULL;
+lv_obj_t *ui_Screen1 = NULL;lv_obj_t *ui_Container1 = NULL;lv_obj_t *ui_Container2 = NULL;lv_obj_t *ui_TempArc1 = NULL;lv_obj_t *ui_TempArc2 = NULL;lv_obj_t *ui_TempArc3 = NULL;lv_obj_t *ui_TempArc4 = NULL;lv_obj_t *ui_TempLabel1 = NULL;lv_obj_t *ui_TempLabel2 = NULL;lv_obj_t *ui_TempLabel3 = NULL;lv_obj_t *ui_TempLabel4 = NULL;lv_obj_t *ui_RoomName1 = NULL;lv_obj_t *ui_RoomName2 = NULL;lv_obj_t *ui_RoomName3 = NULL;lv_obj_t *ui_RoomName4 = NULL;lv_obj_t *ui_StatusMessage = NULL;lv_obj_t *ui_HumidLabel1 = NULL;lv_obj_t *ui_HumidLabel3 = NULL;lv_obj_t *ui_HumidLabel4 = NULL;lv_obj_t *ui_HumidLabel2 = NULL;lv_obj_t *ui_Time = NULL;lv_obj_t *ui_TextRooms = NULL;lv_obj_t *ui_TempArcFC = NULL;lv_obj_t *ui_TempLabelFC = NULL;lv_obj_t *ui_TextForecastName = NULL;lv_obj_t *ui_FCConditions = NULL;lv_obj_t *ui_FCWindSpeed = NULL;lv_obj_t *ui_FCUpdateTime = NULL;lv_obj_t *ui_BatteryArc = NULL;lv_obj_t *ui_BatteryLabel = NULL;lv_obj_t *ui_TextBattery = NULL;lv_obj_t *ui_SolarArc = NULL;lv_obj_t *ui_SolarLabel = NULL;lv_obj_t *ui_TextSolar = NULL;lv_obj_t *ui_UsingArc = NULL;lv_obj_t *ui_TextUsing = NULL;lv_obj_t *ui_UsingLabel = NULL;lv_obj_t *ui_ChargingLabel = NULL;lv_obj_t *ui_AsofTimeLabel = NULL;lv_obj_t *ui_ChargingTime = NULL;lv_obj_t *ui_TextKlaussometer = NULL;lv_obj_t *ui_WiFiStatus = NULL;lv_obj_t *ui_ServerStatus = NULL;lv_obj_t *ui_WeatherStatus = NULL;lv_obj_t *ui_SolarStatus = NULL;lv_obj_t *ui_SolarMinMax = NULL;lv_obj_t *ui_GridBought = NULL;lv_obj_t *ui_TempArc5 = NULL;lv_obj_t *ui_TempLabel5 = NULL;lv_obj_t *ui_RoomName5 = NULL;lv_obj_t *ui_FCMin = NULL;lv_obj_t *ui_FCMax = NULL;lv_obj_t *ui_HumidLabel5 = NULL;lv_obj_t *ui_Direction1 = NULL;lv_obj_t *ui_Direction2 = NULL;lv_obj_t *ui_Direction3 = NULL;lv_obj_t *ui_Direction4 = NULL;lv_obj_t *ui_Direction5 = NULL;lv_obj_t *ui_UVArc = NULL;lv_obj_t *ui_UVLabel = NULL;lv_obj_t *ui_TextUV = NULL;lv_obj_t *ui_BatteryLabel5 = NULL;lv_obj_t *ui_UVUpdateTime = NULL;lv_obj_t *ui_BatteryLabel1 = NULL;lv_obj_t *ui_BatteryLabel2 = NULL;lv_obj_t *ui_BatteryLabel4 = NULL;lv_obj_t *ui_BatteryLabel3 = NULL;
 // event funtions
 
 // build funtions
@@ -377,7 +377,7 @@ lv_obj_set_height( ui_TextKlaussometer, LV_SIZE_CONTENT);   /// 1
 lv_obj_set_x( ui_TextKlaussometer, -360 );
 lv_obj_set_y( ui_TextKlaussometer, -270 );
 lv_obj_set_align( ui_TextKlaussometer, LV_ALIGN_CENTER );
-lv_label_set_text(ui_TextKlaussometer,"Klaussometer V4");
+lv_label_set_text(ui_TextKlaussometer,"Klaussometer V4.1");
 lv_obj_set_style_text_font(ui_TextKlaussometer, &ui_font_Monserrat_bold_32, LV_PART_MAIN| LV_STATE_DEFAULT);
 lv_obj_set_style_shadow_color(ui_TextKlaussometer, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT );
 lv_obj_set_style_shadow_opa(ui_TextKlaussometer, 255, LV_PART_MAIN| LV_STATE_DEFAULT);
@@ -524,7 +524,7 @@ lv_obj_set_height( ui_Direction5, LV_SIZE_CONTENT);   /// 1
 lv_obj_set_x( ui_Direction5, 400 );
 lv_obj_set_y( ui_Direction5, -175 );
 lv_obj_set_align( ui_Direction5, LV_ALIGN_CENTER );
-lv_label_set_text(ui_Direction5,"a");
+lv_label_set_text(ui_Direction5,"");
 lv_obj_set_style_text_font(ui_Direction5, &ui_font_Epicycles, LV_PART_MAIN| LV_STATE_DEFAULT);
 
 ui_UVArc = lv_arc_create(ui_Screen1);
@@ -578,6 +578,50 @@ lv_obj_set_x( ui_UVUpdateTime, 200 );
 lv_obj_set_y( ui_UVUpdateTime, -25 );
 lv_obj_set_align( ui_UVUpdateTime, LV_ALIGN_CENTER );
 lv_label_set_text(ui_UVUpdateTime,"Update time");
+
+ui_BatteryLabel1 = lv_label_create(ui_Screen1);
+lv_obj_set_width( ui_BatteryLabel1, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_BatteryLabel1, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_x( ui_BatteryLabel1, -400 );
+lv_obj_set_y( ui_BatteryLabel1, 22 );
+lv_obj_set_align( ui_BatteryLabel1, LV_ALIGN_CENTER );
+lv_label_set_text(ui_BatteryLabel1,"v");
+lv_obj_set_style_text_color(ui_BatteryLabel1, lv_color_hex(0x0000FF), LV_PART_MAIN | LV_STATE_DEFAULT );
+lv_obj_set_style_text_opa(ui_BatteryLabel1, 255, LV_PART_MAIN| LV_STATE_DEFAULT);
+lv_obj_set_style_text_font(ui_BatteryLabel1, &ui_font_Battery, LV_PART_MAIN| LV_STATE_DEFAULT);
+
+ui_BatteryLabel2 = lv_label_create(ui_Screen1);
+lv_obj_set_width( ui_BatteryLabel2, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_BatteryLabel2, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_x( ui_BatteryLabel2, -200 );
+lv_obj_set_y( ui_BatteryLabel2, 22 );
+lv_obj_set_align( ui_BatteryLabel2, LV_ALIGN_CENTER );
+lv_label_set_text(ui_BatteryLabel2,"v");
+lv_obj_set_style_text_color(ui_BatteryLabel2, lv_color_hex(0x0000FF), LV_PART_MAIN | LV_STATE_DEFAULT );
+lv_obj_set_style_text_opa(ui_BatteryLabel2, 255, LV_PART_MAIN| LV_STATE_DEFAULT);
+lv_obj_set_style_text_font(ui_BatteryLabel2, &ui_font_Battery, LV_PART_MAIN| LV_STATE_DEFAULT);
+
+ui_BatteryLabel4 = lv_label_create(ui_Screen1);
+lv_obj_set_width( ui_BatteryLabel4, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_BatteryLabel4, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_x( ui_BatteryLabel4, -200 );
+lv_obj_set_y( ui_BatteryLabel4, 223 );
+lv_obj_set_align( ui_BatteryLabel4, LV_ALIGN_CENTER );
+lv_label_set_text(ui_BatteryLabel4,"v");
+lv_obj_set_style_text_color(ui_BatteryLabel4, lv_color_hex(0x0000FF), LV_PART_MAIN | LV_STATE_DEFAULT );
+lv_obj_set_style_text_opa(ui_BatteryLabel4, 255, LV_PART_MAIN| LV_STATE_DEFAULT);
+lv_obj_set_style_text_font(ui_BatteryLabel4, &ui_font_Battery, LV_PART_MAIN| LV_STATE_DEFAULT);
+
+ui_BatteryLabel3 = lv_label_create(ui_Screen1);
+lv_obj_set_width( ui_BatteryLabel3, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_BatteryLabel3, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_x( ui_BatteryLabel3, -400 );
+lv_obj_set_y( ui_BatteryLabel3, 223 );
+lv_obj_set_align( ui_BatteryLabel3, LV_ALIGN_CENTER );
+lv_label_set_text(ui_BatteryLabel3,"v");
+lv_obj_set_style_text_color(ui_BatteryLabel3, lv_color_hex(0x0000FF), LV_PART_MAIN | LV_STATE_DEFAULT );
+lv_obj_set_style_text_opa(ui_BatteryLabel3, 255, LV_PART_MAIN| LV_STATE_DEFAULT);
+lv_obj_set_style_text_font(ui_BatteryLabel3, &ui_font_Battery, LV_PART_MAIN| LV_STATE_DEFAULT);
 
 }
 
@@ -649,5 +693,9 @@ ui_UVLabel= NULL;
 ui_TextUV= NULL;
 ui_BatteryLabel5= NULL;
 ui_UVUpdateTime= NULL;
+ui_BatteryLabel1= NULL;
+ui_BatteryLabel2= NULL;
+ui_BatteryLabel4= NULL;
+ui_BatteryLabel3= NULL;
 
 }

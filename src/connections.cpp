@@ -1,9 +1,7 @@
 #include <globals.h>
 #include <klaussometer.h>
 
-extern WiFiClient espClient;
 extern MqttClient mqttClient;
-extern WiFiUDP ntpUDP;
 extern NTPClient timeClient;
 extern Readings readings[];
 extern char statusMessage[];

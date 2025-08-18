@@ -76,6 +76,10 @@ extern lv_obj_t *ui_UVLabel;
 extern lv_obj_t *ui_TextUV;
 extern lv_obj_t *ui_BatteryLabel5;
 extern lv_obj_t *ui_UVUpdateTime;
+extern lv_obj_t *ui_BatteryLabel1;
+extern lv_obj_t *ui_BatteryLabel2;
+extern lv_obj_t *ui_BatteryLabel4;
+extern lv_obj_t *ui_BatteryLabel3;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus
