@@ -3,8 +3,6 @@
 
 extern Weather weather;
 extern Solar solar;
-extern char statusMessage[];
-extern bool statusMessageUpdated;
 extern Preferences storage;
 extern NTPClient timeClient;
 
@@ -28,16 +26,14 @@ void get_uv_t(void *pvParameters) {
             float UV = root["data"][0]["uv"];
             weather.UV = UV;
             weather.UVupdateTime = now();
-            strncpy(statusMessage, "UV updated", CHAR_LEN);
+            logAndPublish("UV updated");
             timeClient.getFormattedTime().toCharArray(weather.UV_time_string,
                                                       CHAR_LEN);
-            statusMessageUpdated = true;
           }
         } else {
           Serial.printf("[HTTP] GET UV failed, error: %s\n",
                         httpClientUV.errorToString(httpCode).c_str());
-          strncpy(statusMessage, "UV updated failed", CHAR_LEN);
-          statusMessageUpdated = true;
+          logAndPublish("UV updated failed");
         }
       }
     } else {
@@ -96,14 +92,12 @@ void get_weather_t(void *pvParameters) {
           weather.updateTime = now();
           timeClient.getFormattedTime().toCharArray(weather.weather_time_string,
                                                     CHAR_LEN);
-          strncpy(statusMessage, "Weather updated", CHAR_LEN);
-          statusMessageUpdated = true;
+          logAndPublish("Weather updated");
         }
       } else {
         Serial.printf("[HTTP] GET current weather failed, error: %s\n",
                       httpClientWeather.errorToString(httpCode).c_str());
-        strncpy(statusMessage, "Weather updated failed", CHAR_LEN);
-        statusMessageUpdated = true;
+        logAndPublish("Weather updated failed");
       }
     }
 
@@ -297,8 +291,7 @@ void get_solar_t(void *pvParameters) {
               storage.end();
             }
 
-            strncpy(statusMessage, "Solar status updated", CHAR_LEN);
-            statusMessageUpdated = true;
+            logAndPublish("Solar status updated");
           } else {
             if (root.containsKey("msg")) {
               const char *msg = root["msg"];
@@ -323,22 +316,18 @@ void get_solar_t(void *pvParameters) {
                         deserializeJson(root, payload);
                         if (root.containsKey("access_token")) {
                           const char *rec_token = root["access_token"];
-                          strncpy(statusMessage, "Solar token obtained",
-                                  CHAR_LEN);
-                          statusMessageUpdated = true;
+                          logAndPublish("Solar token obtained");
                           token = rec_token;
                           token = "bearer " + token;
                         } else {
-                          strncpy(statusMessage, "Solar token error", CHAR_LEN);
+                          logAndPublish("Solar token error");
                         }
                       }
                     } else {
                       Serial.printf(
                           "[HTTP] GET solar token failed, error: %s\n",
                           httpClientSolar.errorToString(httpCode).c_str());
-                      strncpy(statusMessage, "Getting solar token failed",
-                              CHAR_LEN);
-                      statusMessageUpdated = true;
+                      logAndPublish("Getting solar token failed");
                     }
                     vTaskDelay(500);
                   }
@@ -350,8 +339,7 @@ void get_solar_t(void *pvParameters) {
           Serial.printf("[HTTP] GET solar status failed, error: %s\n",
                         httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
-          strncpy(statusMessage, "Getting solar status failed", CHAR_LEN);
-          statusMessageUpdated = true;
+          logAndPublish("Getting solar status failed");
         }
       }
       vTaskDelay(100);
@@ -394,8 +382,7 @@ void get_solar_t(void *pvParameters) {
           if (rec_success == true) {
             float today_buy = root["stationDataItems"][0]["buyValue"];
             solar.today_buy = today_buy;
-            strncpy(statusMessage, "Solar history updated", CHAR_LEN);
-            statusMessageUpdated = true;
+            logAndPublish("Solar history updated");
           } else {
             String rec_msg = root["msg"];
           }
@@ -403,9 +390,7 @@ void get_solar_t(void *pvParameters) {
           Serial.printf("[HTTP] GET solar today buy value failed, error: %s\n",
                         httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
-          strncpy(statusMessage, "Getting solar today buy value failed",
-                  CHAR_LEN);
-          statusMessageUpdated = true;
+          logAndPublish("Getting solar today buy value failed");
         }
       }
 
@@ -430,16 +415,13 @@ void get_solar_t(void *pvParameters) {
             float month_buy = root["stationDataItems"][0]["buyValue"];
 
             solar.month_buy = month_buy;
-            strncpy(statusMessage, "Solar history updated", CHAR_LEN);
-            statusMessageUpdated = true;
+            logAndPublish("Solar history updated");
           }
         } else {
           Serial.printf("[HTTP] GET solar month buy value failed, error: %s\n",
                         httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
-          strncpy(statusMessage, "Getting solar month buy value failed",
-                  CHAR_LEN);
-          statusMessageUpdated = true;
+          logAndPublish("Getting solar month buy value failed");
         }
       }
     }

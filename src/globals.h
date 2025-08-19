@@ -59,12 +59,27 @@ struct Solar {
   float month_buy;
 };
 
+typedef struct {
+    char text[CHAR_LEN];
+    int duration_s; // Duration in seconds
+} StatusMessage;
+
 //main
 void pin_init();
 void setup_wifi();
 void mqtt_connect(); 
 void touch_init();
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p);
+void setup_wifi();
+void mqtt_connect();
+void time_init();
+void receive_mqtt_messages_t(void *pvParams);
+void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
+void set_solar_values();
+void getBatteryStatus(float batteryValue, int readingIndex,
+                      char *iconCharacterPtr, lv_color_t *colorPtr);
+void displayStatusMessages_t(void *pvParameters);
+void logAndPublish(const char* format, ...);
 
 // mqtt
 void update_temperature(char *recMessage, int index);

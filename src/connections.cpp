@@ -2,6 +2,7 @@
 #include <klaussometer.h>
 
 extern MqttClient mqttClient;
+extern MqttClient mqttClientLog;
 extern NTPClient timeClient;
 extern Readings readings[];
 extern char statusMessage[];
@@ -10,16 +11,16 @@ extern int numberOfReadings;
 
 void setup_wifi() {
   int counter = 1;
-  //WiFi.useStaticBuffers(true);
+  // WiFi.useStaticBuffers(true);
   WiFi.mode(WIFI_STA);
-  //WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println("scan start");
 
   // WiFi.scanNetworks will return the number of networks found
   int n = WiFi.scanNetworks();
   Serial.println("scan done");
   if (n == 0) {
-      Serial.println("no networks found");
+    Serial.println("no networks found");
   } else {
     Serial.print(n);
     Serial.println(" networks found");
@@ -31,27 +32,27 @@ void setup_wifi() {
       Serial.print(" (");
       Serial.print(WiFi.RSSI(i));
       Serial.print(")");
-      Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
+      Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
       delay(10);
     }
   }
   Serial.println("");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.persistent(false);
-//WiFi.setAutoConnect(false);
-WiFi.setAutoReconnect(true);
-WiFi.setTxPower(WIFI_POWER_2dBm);
-
+  // WiFi.setAutoConnect(false);
+  WiFi.setAutoReconnect(true);
+  WiFi.setTxPower(WIFI_POWER_2dBm);
 
   while (WiFi.status() != WL_CONNECTED) {
     if (lv_is_initialized()) {
-      lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+      lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_RED),
+                                  LV_PART_MAIN);
     }
     counter++;
     Serial.println("Trying to connect to \n" + String(WIFI_SSID));
     WiFi.disconnect();
     WiFi.reconnect();
-    
+
     if (counter > WIFI_RETRIES) {
       Serial.println("Restarting due to WiFi connection errors");
       ESP.restart();
@@ -59,9 +60,11 @@ WiFi.setTxPower(WIFI_POWER_2dBm);
     delay(3000);
   }
   if (lv_is_initialized()) {
-    lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+    lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_GREEN),
+                                LV_PART_MAIN);
   }
-  Serial.println("WiFi is OK => ESP32 IP address is: " + WiFi.localIP().toString());
+  Serial.println("WiFi is OK => ESP32 IP address is: " +
+                 WiFi.localIP().toString());
 }
 
 void mqtt_connect() {
@@ -72,9 +75,10 @@ void mqtt_connect() {
   Serial.println(MQTT_SERVER);
   if (!mqttClient.connected()) {
     if (!mqttClient.connect(MQTT_SERVER, 1883)) {
-      Serial.print("MQTT connection failed");
+      Serial.print("MQTT receive connection failed");
       if (lv_is_initialized()) {
-        lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+        lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_RED),
+                                    LV_PART_MAIN);
       }
       delay(2000);
       return;
@@ -83,13 +87,15 @@ void mqtt_connect() {
 
   Serial.println("Connected to the MQTT broker");
   if (lv_is_initialized()) {
-    lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+    lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_GREEN),
+                                LV_PART_MAIN);
   }
 
   for (int i = 0; i < numberOfReadings; i++) {
     mqttClient.subscribe(readings[i].topic);
     readings[i].lastMessageTime = millis();
   }
+
 }
 
 void time_init() {

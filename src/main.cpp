@@ -30,11 +30,17 @@ Arduino Core 0
 #include <globals.h>
 #include <klaussometer.h>
 #include <lvgl.h> // Version 8.4 tested
+#include "FreeRTOS.h" // Include FreeRTOS for queue functionality
+#include "queue.h"    // Queue-specific functions
+#include "task.h"     // Task-specific functions
+#include <lvgl.h>     // For LVGL UI functions
+#include <stdarg.h>   // For va_list, va_start, va_end
 
 // Create network objects
 WiFiClient espClient;
 MqttClient mqttClient(espClient);
 WiFiUDP ntpUDP;
+SemaphoreHandle_t mqttMutex;
 
 // Global variables
 time_t statusChangeTime = 0;
@@ -46,6 +52,7 @@ Solar solar = {0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0};
 Readings readings[]{READINGS_ARRAY};
 Preferences storage;
 int numberOfReadings = sizeof(readings) / sizeof(readings[0]);
+QueueHandle_t statusMessageQueue;
 
 // Status messages
 char statusMessage[CHAR_LEN];
@@ -95,19 +102,19 @@ static lv_obj_t **batteryLabels[ROOM_COUNT] = BATTERY_LABELS;
 static lv_obj_t **directionLabels[ROOM_COUNT] = DIRECTION_LABELS;
 static lv_obj_t **humidityLabels[ROOM_COUNT] = HUMIDITY_LABELS;
 
-// main prototype
-void setup_wifi();
-void mqtt_connect();
-void time_init();
-void receive_mqtt_messages_t(void *pvParams);
-void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
-void set_solar_values();
-void getBatteryStatus(float batteryValue, int readingIndex,
-                      char *iconCharacterPtr, lv_color_t *colorPtr);
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Starting Klaussometer 4.0 Display");
+
+  statusMessageQueue = xQueueCreate(100, sizeof(StatusMessage));
+  mqttMutex = xSemaphoreCreateMutex();
+    
+    // Check if the queue was created successfully
+    if (statusMessageQueue == NULL) {
+        // Handle error: The queue could not be created
+        Serial.println("Error: Failed to create status message queue.");
+    }
 
   pin_init();
   touch_init();
@@ -196,20 +203,16 @@ void setup() {
     lv_label_set_text(ui_GridBought,
                       "Bought\nToday - Pending\nThis Month - Pending");
 
-    lv_label_set_text(ui_StatusMessage, "Starting Wifi");
-    lv_timer_handler(); // Run GUI
-    lv_timer_handler(); // Run GUI
-
-    lv_label_set_text(ui_StatusMessage, "Connecting to server");
-    lv_timer_handler(); // Run GUI
-    lv_label_set_text(ui_StatusMessage, "Successfully connected to server");
-    lv_timer_handler(); // Run GUI
-
+    logAndPublish("Starting Wifi");
     setup_wifi();
+    logAndPublish("Getting time");
     time_init();
     pin_init();
     touch_init();
+    logAndPublish("Connecting to MQTT server");
     mqtt_connect();
+    logAndPublish("MQTT server connected");
+
 
     // Start tasks
     xTaskCreatePinnedToCore(receive_mqtt_messages_t, "mqtt", 16384, NULL, 4,
@@ -217,7 +220,8 @@ void setup() {
     xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL,
                             0);
     xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 1);
+    xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 0);
+    xTaskCreate(displayStatusMessages_t, "DisplayStatus", 4096, NULL, 0, NULL);
   }
 }
 
@@ -247,8 +251,9 @@ void loop() {
 
   for (unsigned char i = 0; i < ROOM_COUNT; ++i) {
     getBatteryStatus(readings[i + 2 * ROOM_COUNT].currentValue,
-                     readings[i + 10].readingIndex, &icon, &color);
-    lv_label_set_text(*batteryLabels[i], &icon);
+                     readings[i + 2 * ROOM_COUNT].readingIndex, &icon, &color);
+    snprintf(tempString, CHAR_LEN, "%c", icon);
+    lv_label_set_text(*batteryLabels[i], tempString);
     lv_obj_set_style_text_color(*batteryLabels[i], color, LV_PART_MAIN);
   }
 
@@ -325,7 +330,7 @@ void loop() {
   }
 
   // Remove old status messages
-  if (statusChangeTime + STATUS_MESSAGE_TIME < now()) {
+  /* if (statusChangeTime + STATUS_MESSAGE_TIME < now()) {
     lv_label_set_text(ui_StatusMessage, "");
   }
 
@@ -334,7 +339,7 @@ void loop() {
     statusMessageUpdated = false;
     lv_label_set_text(ui_StatusMessage, statusMessage);
     statusChangeTime = now();
-  }
+  } */
 
   // Update time and screen brightness
   timeClient.getFormattedTime().toCharArray(timeString, CHAR_LEN);
@@ -457,8 +462,62 @@ void getBatteryStatus(float batteryValue, int readingIndex,
       *colorPtr = lv_color_hex(COLOR_RED);
     } else {
       // Default or fallback case if readingIndex is 0
-      *iconCharacterPtr = CHAR_BATTERY_OK; // Or some other default
+      *iconCharacterPtr = CHAR_BLANK; // Or some other default
       *colorPtr = lv_color_hex(COLOR_GREEN);
     }
   }
+}
+
+void displayStatusMessages_t(void *pvParameters) {
+    StatusMessage receivedMsg;
+
+    while (true) {
+        // Wait indefinitely for a new message to arrive in the queue.
+        // portMAX_DELAY ensures the task will sleep until a message is available.
+        if (xQueueReceive(statusMessageQueue, &receivedMsg, portMAX_DELAY) == pdTRUE) {
+            // A message was received, so update the LVGL label.
+            lv_label_set_text(ui_StatusMessage, receivedMsg.text);
+
+            lv_task_handler();
+
+            // Wait for the specified duration before clearing the message.
+            vTaskDelay(pdMS_TO_TICKS(receivedMsg.duration_s * 1000));
+
+            // Clear the label after the duration has passed.
+            lv_label_set_text(ui_StatusMessage, "");
+            lv_task_handler(); // Flush the display again
+        }
+    }
+}
+
+
+void logAndPublish(const char* format, ...) {
+    char messageBuffer[CHAR_LEN];
+    va_list args;
+    
+    // Format the message using the variable arguments
+    va_start(args, format);
+    vsnprintf(messageBuffer, sizeof(messageBuffer), format, args);
+    va_end(args);
+
+    // Print to the serial console
+    Serial.println(messageBuffer);
+
+    // Check if the MQTT client is connected and publish the message
+    if (xSemaphoreTake(mqttMutex, portMAX_DELAY) == pdTRUE) {
+        // We have successfully acquired the lock
+        if (mqttClient.connected()) {
+            mqttClient.beginMessage(LOG_TOPIC);
+            mqttClient.print(messageBuffer);
+            mqttClient.endMessage();
+        }
+        // Give the mutex back to allow other tasks to use the client
+        xSemaphoreGive(mqttMutex);
+    } 
+
+    // Also send the message to the UI status queue for on-screen display.
+    StatusMessage msg;
+    strncpy(msg.text, messageBuffer, CHAR_LEN);
+    msg.duration_s = STATUS_MESSAGE_TIME;
+    xQueueSend(statusMessageQueue, &msg, 0); // Use 0 for no-wait if queue is full
 }

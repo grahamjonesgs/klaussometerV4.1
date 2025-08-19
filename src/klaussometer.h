@@ -28,8 +28,10 @@
 #define DIRECTION_LABELS {&ui_Direction1, &ui_Direction2, &ui_Direction3, &ui_Direction4, &ui_Direction5}
 #define HUMIDITY_LABELS {&ui_HumidLabel1, &ui_HumidLabel2, &ui_HumidLabel3, &ui_HumidLabel4, &ui_HumidLabel5}
 
-#define CHAR_LEN 255
+#define LOG_TOPIC "klaussometer/log"
+#define ERROR_TOPIC "klaussometer/error"
 
+#define CHAR_LEN 255
 #define NO_READING "--"
 // Character settings
 #define CHAR_UP 'a'    // Based on epicycles font
@@ -60,7 +62,7 @@
 #define WEATHER_UPDATE_INTERVAL 300LL          // Interval between weather updates
 #define UV_UPDATE_INTERVAL 3600LL            // Interval between UV updates (long)
 #define SOLAR_UPDATE_INTERVAL 30             // Interval between solar updates
-#define STATUS_MESSAGE_TIME 5                // Seconds an status message can be displayed
+#define STATUS_MESSAGE_TIME 3                // Seconds an status message can be displayed
 #define MAX_SOLAR_TIME_STATUS 24             // Max time in hours for charge / discharge that a message will be displayed for
 
 #define SCREEN_W 1024
