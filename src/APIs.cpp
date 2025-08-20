@@ -31,7 +31,7 @@ void get_uv_t(void *pvParameters) {
                                                       CHAR_LEN);
           }
         } else {
-          Serial.printf("[HTTP] GET UV failed, error: %s\n",
+          errorPublish("[HTTP] GET UV failed, error: %s\n",
                         httpClientUV.errorToString(httpCode).c_str());
           logAndPublish("UV updated failed");
         }
@@ -59,7 +59,7 @@ void get_weather_t(void *pvParameters) {
           "https://api.open-meteo.com/v1/"
           "forecast?latitude=-33.9258&longitude=18.4232&daily=temperature_2m_"
           "max,temperature_2m_min,sunrise,sunset,uv_index_max&models=ukmo_uk_"
-          "deterministic_2km,cma_grapes_global&current=temperature_2m,is_day,"
+          "deterministic_2km,ncep_gfs013&current=temperature_2m,is_day,"
           "weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&"
           "forecast_days=1");
       vTaskDelay(100);
@@ -84,6 +84,7 @@ void get_weather_t(void *pvParameters) {
           weather.maxTemp = weatherMaxTemp;
           weather.minTemp = weatherMinTemp;
           weather.isDay = weatherIsDay;
+          Serial.printf("Weather update time: %ld, temperature: %2.1f\n", weather.updateTime, weather.temperature);
           strncpy(weather.description, wmoToText(weatherCode, weatherIsDay),
                   CHAR_LEN);
           strncpy(weather.windDir, degreesToDirection(weatherWindDir),
@@ -95,7 +96,7 @@ void get_weather_t(void *pvParameters) {
           logAndPublish("Weather updated");
         }
       } else {
-        Serial.printf("[HTTP] GET current weather failed, error: %s\n",
+        errorPublish("[HTTP] GET current weather failed, error: %s\n",
                       httpClientWeather.errorToString(httpCode).c_str());
         logAndPublish("Weather updated failed");
       }
@@ -324,8 +325,7 @@ void get_solar_t(void *pvParameters) {
                         }
                       }
                     } else {
-                      Serial.printf(
-                          "[HTTP] GET solar token failed, error: %s\n",
+                      errorPublish("[HTTP] GET solar token failed, error: %s\n",
                           httpClientSolar.errorToString(httpCode).c_str());
                       logAndPublish("Getting solar token failed");
                     }
@@ -336,7 +336,7 @@ void get_solar_t(void *pvParameters) {
             }
           }
         } else {
-          Serial.printf("[HTTP] GET solar status failed, error: %s\n",
+          errorPublish("[HTTP] GET solar status failed, error: %s\n",
                         httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
           logAndPublish("Getting solar status failed");
@@ -387,7 +387,7 @@ void get_solar_t(void *pvParameters) {
             String rec_msg = root["msg"];
           }
         } else {
-          Serial.printf("[HTTP] GET solar today buy value failed, error: %s\n",
+          errorPublish("[HTTP] GET solar today buy value failed, error: %s\n",
                         httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
           logAndPublish("Getting solar today buy value failed");
@@ -418,7 +418,7 @@ void get_solar_t(void *pvParameters) {
             logAndPublish("Solar history updated");
           }
         } else {
-          Serial.printf("[HTTP] GET solar month buy value failed, error: %s\n",
+          errorPublish("[HTTP] GET solar month buy value failed, error: %s\n",
                         httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
           logAndPublish("Getting solar month buy value failed");

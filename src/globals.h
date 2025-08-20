@@ -80,6 +80,7 @@ void getBatteryStatus(float batteryValue, int readingIndex,
                       char *iconCharacterPtr, lv_color_t *colorPtr);
 void displayStatusMessages_t(void *pvParameters);
 void logAndPublish(const char* format, ...);
+void errorPublish(const char* format, ...);
 
 // mqtt
 void update_temperature(char *recMessage, int index);
