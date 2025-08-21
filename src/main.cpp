@@ -17,7 +17,7 @@ Arduino Core 0
 #include "queue.h" // Queue-specific functions
 #include "task.h"  // Task-specific functions
 #include "time.h"
-#include "ui.h"
+#include "UI/ui.h"
 #include "wifi_user.h"
 #include <ArduinoJson.h>
 #include <ArduinoMqttClient.h>
@@ -150,7 +150,6 @@ void setup() {
     lv_indev_drv_register(&indev_drv);
 
     ui_init();
-    lv_timer_handler();
 
     // Set the initial values
 
@@ -202,6 +201,7 @@ void setup() {
     lv_label_set_text(ui_GridBought,
                       "Bought\nToday - Pending\nThis Month - Pending");
 
+    lv_timer_handler();
     logAndPublish("Starting Wifi");
     setup_wifi();
     logAndPublish("Getting time");

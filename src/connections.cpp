@@ -14,7 +14,7 @@ void setup_wifi() {
   // WiFi.useStaticBuffers(true);
   WiFi.mode(WIFI_STA);
   // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.println("scan start");
+  /*Serial.println("scan start");
 
   // WiFi.scanNetworks will return the number of networks found
   int n = WiFi.scanNetworks();
@@ -35,7 +35,7 @@ void setup_wifi() {
       Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
       delay(10);
     }
-  }
+  }*/
   Serial.println("");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.persistent(false);

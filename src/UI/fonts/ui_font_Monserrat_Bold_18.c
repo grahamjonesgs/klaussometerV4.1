@@ -4,7 +4,7 @@
  * Opts: --bpp 1 --size 18 --font /Users/gjonesblackcyton/Documents/src/matouch/klaussometerV3/SL/assets/Montserrat-Bold.ttf -o /Users/gjonesblackcyton/Documents/src/matouch/klaussometerV3/SL/assets/ui_font_Monserrat_Bold_18.c --format lvgl -r 0x20-0x7f --no-compress --no-prefilter
  ******************************************************************************/
 
-#include "ui.h"
+#include "../ui.h"
 
 #ifndef UI_FONT_MONSERRAT_BOLD_18
 #define UI_FONT_MONSERRAT_BOLD_18 1

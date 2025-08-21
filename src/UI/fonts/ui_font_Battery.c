@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Size: 40 px
  * Bpp: 1
- * Opts: --bpp 1 --size 40 --font /Users/gjonesblackcyton/Documents/src/matouch/klaussometerV4/SL/assets/Battery Icons.otf -o /Users/gjonesblackcyton/Documents/src/matouch/klaussometerV4/SL/assets/ui_font_Battery2.c --format lvgl -r 0x20-0x7f --no-compress --no-prefilter
+ * Opts: --bpp 1 --size 40 --font /Users/gjonesblackcyton/Documents/src/matouch/klaussometerV4/SL/assets/Battery Icons.otf -o /Users/gjonesblackcyton/Documents/src/matouch/klaussometerV4/SL/assets/ui_font_Battery.c --format lvgl -r 0x20-0x7f --no-compress --no-prefilter
  ******************************************************************************/
 
-#include "ui.h"
+#include "../ui.h"
 
-#ifndef UI_FONT_BATTERY2
-#define UI_FONT_BATTERY2 1
+#ifndef UI_FONT_BATTERY
+#define UI_FONT_BATTERY 1
 #endif
 
-#if UI_FONT_BATTERY2
+#if UI_FONT_BATTERY
 
 /*-----------------
  *    BITMAPS
@@ -1152,9 +1152,9 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 
 /*Initialize a public general font descriptor*/
 #if LVGL_VERSION_MAJOR >= 8
-const lv_font_t ui_font_Battery2 = {
+const lv_font_t ui_font_Battery = {
 #else
-lv_font_t ui_font_Battery2 = {
+lv_font_t ui_font_Battery = {
 #endif
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/
@@ -1176,5 +1176,5 @@ lv_font_t ui_font_Battery2 = {
 
 
 
-#endif /*#if UI_FONT_BATTERY2*/
+#endif /*#if UI_FONT_BATTERY*/
 

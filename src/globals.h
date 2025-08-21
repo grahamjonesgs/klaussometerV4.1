@@ -1,5 +1,5 @@
 #include <lvgl.h>  // Version 8.4 tested
-#include "ui.h"
+#include "UI/ui.h"
 #include <Arduino_GFX_Library.h>
 #include <TAMC_GT911.h>
 #include <Wire.h>

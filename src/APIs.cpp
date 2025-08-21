@@ -5,10 +5,13 @@ extern Weather weather;
 extern Solar solar;
 extern Preferences storage;
 extern NTPClient timeClient;
+HTTPClient httpClientUV;
+HTTPClient httpClientWeather;
+HTTPClient httpClientSolar;
 
 // Get weather from weatherbit.io
 void get_uv_t(void *pvParameters) {
-  HTTPClient httpClientUV;
+
   const char apiKey[] = WEATHERBIT_API;
   while (true) {
     if (weather.isDay) {
@@ -32,7 +35,7 @@ void get_uv_t(void *pvParameters) {
           }
         } else {
           errorPublish("[HTTP] GET UV failed, error: %s\n",
-                        httpClientUV.errorToString(httpCode).c_str());
+                       httpClientUV.errorToString(httpCode).c_str());
           logAndPublish("UV updated failed");
         }
       }
@@ -50,21 +53,19 @@ void get_uv_t(void *pvParameters) {
 }
 
 void get_weather_t(void *pvParameters) {
-  HTTPClient httpClientWeather;
+
   String requestUrl;
   time_t t;
   while (true) {
     if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
       httpClientWeather.begin(
-          "https://api.open-meteo.com/v1/"
+          "http://api.open-meteo.com/v1/"
           "forecast?latitude=-33.9258&longitude=18.4232&daily=temperature_2m_"
           "max,temperature_2m_min,sunrise,sunset,uv_index_max&models=ukmo_uk_"
           "deterministic_2km,ncep_gfs013&current=temperature_2m,is_day,"
           "weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&"
           "forecast_days=1");
-      vTaskDelay(100);
       int httpCode = httpClientWeather.GET();
-      vTaskDelay(100);
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
           String payload = httpClientWeather.getString();
@@ -84,7 +85,8 @@ void get_weather_t(void *pvParameters) {
           weather.maxTemp = weatherMaxTemp;
           weather.minTemp = weatherMinTemp;
           weather.isDay = weatherIsDay;
-          Serial.printf("Weather update time: %ld, temperature: %2.1f\n", weather.updateTime, weather.temperature);
+          Serial.printf("Weather update time: %ld, temperature: %2.1f\n",
+                        weather.updateTime, weather.temperature);
           strncpy(weather.description, wmoToText(weatherCode, weatherIsDay),
                   CHAR_LEN);
           strncpy(weather.windDir, degreesToDirection(weatherWindDir),
@@ -97,7 +99,7 @@ void get_weather_t(void *pvParameters) {
         }
       } else {
         errorPublish("[HTTP] GET current weather failed, error: %s\n",
-                      httpClientWeather.errorToString(httpCode).c_str());
+                     httpClientWeather.errorToString(httpCode).c_str());
         logAndPublish("Weather updated failed");
       }
     }
@@ -207,7 +209,7 @@ const char *wmoToText(int code, bool isDay) {
 
 // Get solar values from Solarman
 void get_solar_t(void *pvParameters) {
-  HTTPClient httpClientSolar;
+
   String solar_url = SOLAR_URL;
   String solar_appid = SOLAR_APPID;
   String solar_secret = SOLAR_SECRET;
@@ -325,7 +327,8 @@ void get_solar_t(void *pvParameters) {
                         }
                       }
                     } else {
-                      errorPublish("[HTTP] GET solar token failed, error: %s\n",
+                      errorPublish(
+                          "[HTTP] GET solar token failed, error: %s\n",
                           httpClientSolar.errorToString(httpCode).c_str());
                       logAndPublish("Getting solar token failed");
                     }
@@ -337,7 +340,7 @@ void get_solar_t(void *pvParameters) {
           }
         } else {
           errorPublish("[HTTP] GET solar status failed, error: %s\n",
-                        httpClientSolar.errorToString(httpCode).c_str());
+                       httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
           logAndPublish("Getting solar status failed");
         }
@@ -388,7 +391,7 @@ void get_solar_t(void *pvParameters) {
           }
         } else {
           errorPublish("[HTTP] GET solar today buy value failed, error: %s\n",
-                        httpClientSolar.errorToString(httpCode).c_str());
+                       httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
           logAndPublish("Getting solar today buy value failed");
         }
@@ -419,7 +422,7 @@ void get_solar_t(void *pvParameters) {
           }
         } else {
           errorPublish("[HTTP] GET solar month buy value failed, error: %s\n",
-                        httpClientSolar.errorToString(httpCode).c_str());
+                       httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
           logAndPublish("Getting solar month buy value failed");
         }

@@ -139,7 +139,7 @@ void update_temperature(char *recMessage, int index) {
 
   readings[index].readingIndex++;
   readings[index].lastMessageTime = millis();
-  logAndPublish("Update received for %s", readings[index].description);
+  logAndPublish("Update received for %s temperature", readings[index].description);
 }
 
 // Update humidity settings
@@ -188,7 +188,7 @@ void update_humidity(char *recMessage, int index) {
 
   readings[index].readingIndex++;
   readings[index].lastMessageTime = millis();
-  logAndPublish("Update received for %s", readings[index].description);
+  logAndPublish("Update received for %s humidity", readings[index].description);
 }
 
 // Update battery settings
@@ -227,7 +227,7 @@ void update_battery(char *recMessage, int index) {
   }
 
   readings[index].readingIndex++;
-  logAndPublish("Update received for %s", readings[index].description);
+  logAndPublish("Update received for %s battery", readings[index].description);
   // Now set current value to average to reduce fluctuations
   readings[index].currentValue = averageHistory;
 }

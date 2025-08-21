@@ -4,7 +4,7 @@
  * Opts: --bpp 1 --size 32 --font /Users/gjonesblackcyton/Documents/src/matouch/klaussometer/SL/assets/Arrows ADF.ttf -o /Users/gjonesblackcyton/Documents/src/matouch/klaussometer/SL/assets/ui_font_Arrows_ADF_big.c --format lvgl -r 0x20-0x7f --no-compress --no-prefilter
  ******************************************************************************/
 
-#include "ui.h"
+#include "../ui.h"
 
 #ifndef UI_FONT_ARROWS_ADF_BIG
 #define UI_FONT_ARROWS_ADF_BIG 1

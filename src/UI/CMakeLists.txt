@@ -1,6 +1,6 @@
-SET(SOURCES ui_Screen1.c
+SET(SOURCES screens/ui_Screen1.c
     ui.c
-    ui_comp_hook.c
+    components/ui_comp_hook.c
     ui_helpers.c
     fonts/ui_font_Arrows_ADF_big.c
     fonts/ui_font_Battery.c
