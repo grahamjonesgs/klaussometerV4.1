@@ -35,12 +35,14 @@ Arduino Core 0
 #include <lvgl.h>   // Version 8.4 tested
 #include <lvgl.h>   // For LVGL UI functions
 #include <stdarg.h> // For va_list, va_start, va_end
+#include <esp_task_wdt.h>
 
 // Create network objects
 WiFiClient espClient;
 MqttClient mqttClient(espClient);
 WiFiUDP ntpUDP;
 SemaphoreHandle_t mqttMutex;
+SemaphoreHandle_t httpMutex;
 
 // Global variables
 time_t statusChangeTime = 0;
@@ -108,6 +110,7 @@ void setup() {
 
   statusMessageQueue = xQueueCreate(100, sizeof(StatusMessage));
   mqttMutex = xSemaphoreCreateMutex();
+  httpMutex = xSemaphoreCreateMutex();
 
   // Check if the queue was created successfully
   if (statusMessageQueue == NULL) {
@@ -492,6 +495,7 @@ void logAndPublish(const char *format, ...) {
   // Check if the MQTT client is connected and publish the message
   if (xSemaphoreTake(mqttMutex, portMAX_DELAY) == pdTRUE) {
     // We have successfully acquired the lock
+    esp_task_wdt_reset();
     if (mqttClient.connected()) {
       mqttClient.beginMessage(LOG_TOPIC);
       mqttClient.print(messageBuffer);
@@ -522,6 +526,7 @@ void errorPublish(const char *format, ...) {
   // Check if the MQTT client is connected and publish the message
   if (xSemaphoreTake(mqttMutex, portMAX_DELAY) == pdTRUE) {
     // We have successfully acquired the lock
+    esp_task_wdt_reset();
     if (mqttClient.connected()) {
       mqttClient.beginMessage(ERROR_TOPIC, true);
       mqttClient.print(messageBuffer);

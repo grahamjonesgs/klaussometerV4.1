@@ -7,7 +7,6 @@
 #include <WiFiClientSecure.h>
 #include <ArduinoMqttClient.h>
 #include <HTTPClient.h>
-//#include "time.h"
 #include "klaussometer.h"
 #include "wifi_user.h"
 #include <TimeLib.h>
