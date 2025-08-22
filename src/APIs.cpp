@@ -310,7 +310,6 @@ void get_solar_t(void *pvParameters) {
                 const char *msg = root["msg"];
                 if (*msg != 0) {
                   if (strcmp(msg, "auth invalid token")) {
-                    esp_task_wdt_reset();
                     vTaskDelay(pdMS_TO_TICKS(100));
                     token = "";
                     while (token.length() == 0) {
@@ -357,8 +356,6 @@ void get_solar_t(void *pvParameters) {
           }
         }
         http.end();
-        esp_task_wdt_reset();
-        vTaskDelay(pdMS_TO_TICKS(100));
         /*
           timeType 1 with start and end date of today gives array of size
           "total", then in stationDataItems -> batterySoc to get battery min/max
@@ -398,7 +395,7 @@ void get_solar_t(void *pvParameters) {
             if (rec_success == true) {
               float today_buy = root["stationDataItems"][0]["buyValue"];
               solar.today_buy = today_buy;
-              logAndPublish("Solar history updated");
+              logAndPublish("Solar today's buy value updated");
             } else {
               String rec_msg = root["msg"];
             }
@@ -410,8 +407,6 @@ void get_solar_t(void *pvParameters) {
           }
         }
         http.end();
-        esp_task_wdt_reset();
-        vTaskDelay(pdMS_TO_TICKS(100));
         // Get month buy value timeType 3
         http.begin("https://" + solar_url +
                    "//station/v1.0/history?language=en");
@@ -433,7 +428,7 @@ void get_solar_t(void *pvParameters) {
               float month_buy = root["stationDataItems"][0]["buyValue"];
 
               solar.month_buy = month_buy;
-              logAndPublish("Solar history updated");
+              logAndPublish("Solar month's buy value updated");
             }
           } else {
             errorPublish("[HTTP] GET solar month buy value failed, error: %s\n",
@@ -444,11 +439,8 @@ void get_solar_t(void *pvParameters) {
         }
         xSemaphoreGive(httpMutex);
         http.end();
-        esp_task_wdt_reset();
-        vTaskDelay(pdMS_TO_TICKS(100));
       }
     }
-    esp_task_wdt_reset();
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 }

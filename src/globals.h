@@ -86,6 +86,7 @@ void update_temperature(char *recMessage, int index);
 void update_humidity(char *recMessage, int index);
 void update_battery(char *recMessage, int index);
 void update_battery(char *recMessage, int index);
+char* toLowercase(const char* source, char* buffer, size_t bufferSize);
 
 //  Screen updates
 void set_temperature_values();
