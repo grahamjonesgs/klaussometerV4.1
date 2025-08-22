@@ -103,7 +103,6 @@ void get_weather_t(void *pvParameters) {
             weather.updateTime = now();
             timeClient.getFormattedTime().toCharArray(
                 weather.weather_time_string, CHAR_LEN);
-                          weather.weather_time_string);
             logAndPublish("Weather updated");
           }
         } else {
