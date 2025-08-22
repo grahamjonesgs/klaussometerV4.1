@@ -348,12 +348,12 @@ void get_solar_t(void *pvParameters) {
                 }
               }
             }
-          } else {
-            errorPublish("[HTTP] GET solar status failed, error: %s\n",
-                         http.errorToString(httpCode).c_str());
-            String payload = http.getString();
-            logAndPublish("Getting solar status failed");
           }
+        } else {
+          errorPublish("[HTTP] GET solar status failed, error: %s\n",
+                       http.errorToString(httpCode).c_str());
+          String payload = http.getString();
+          logAndPublish("Getting solar status failed");
         }
         http.end();
         /*
@@ -399,12 +399,12 @@ void get_solar_t(void *pvParameters) {
             } else {
               String rec_msg = root["msg"];
             }
-          } else {
-            errorPublish("[HTTP] GET solar today buy value failed, error: %s\n",
-                         http.errorToString(httpCode).c_str());
-            String payload = http.getString();
-            logAndPublish("Getting solar today buy value failed");
           }
+        } else {
+          errorPublish("[HTTP] GET solar today buy value failed, error: %s\n",
+                       http.errorToString(httpCode).c_str());
+          String payload = http.getString();
+          logAndPublish("Getting solar today buy value failed");
         }
         http.end();
         // Get month buy value timeType 3
@@ -430,12 +430,12 @@ void get_solar_t(void *pvParameters) {
               solar.month_buy = month_buy;
               logAndPublish("Solar month's buy value updated");
             }
-          } else {
-            errorPublish("[HTTP] GET solar month buy value failed, error: %s\n",
-                         http.errorToString(httpCode).c_str());
-            String payload = http.getString();
-            logAndPublish("Getting solar month buy value failed");
           }
+        } else {
+          errorPublish("[HTTP] GET solar month buy value failed, error: %s\n",
+                       http.errorToString(httpCode).c_str());
+          String payload = http.getString();
+          logAndPublish("Getting solar month buy value failed");
         }
         xSemaphoreGive(httpMutex);
         http.end();
