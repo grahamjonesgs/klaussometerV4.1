@@ -59,9 +59,11 @@
 // Define constants used
 #define MAX_NO_MESSAGE_SEC 3600LL            // Time before CHAR_NO_MESSAGE is set in seconds (long)
 #define TIME_RETRIES 100                     // Number of time to retry getting the time during setup
-#define WEATHER_UPDATE_INTERVAL 300LL          // Interval between weather updates
+#define WEATHER_UPDATE_INTERVAL 300LL        // Interval between weather updates
 #define UV_UPDATE_INTERVAL 3600LL            // Interval between UV updates (long)
-#define SOLAR_UPDATE_INTERVAL 30             // Interval between solar updates
+#define SOLAR_CURRENT_UPDATE_INTERVAL 120    // Interval between solar updates
+#define SOLAR_MONTHLY_UPDATE_INTERVAL 3600   // Interval between solar current updates
+#define SOLAR_DAILY_UPDATE_INTERVAL 3600     // Interval between solar daily updates
 #define STATUS_MESSAGE_TIME 3                // Seconds an status message can be displayed
 #define MAX_SOLAR_TIME_STATUS 24             // Max time in hours for charge / discharge that a message will be displayed for
 

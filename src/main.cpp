@@ -50,7 +50,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", TIME_OFFSET, 60000);
 void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
 Weather weather = {0.0, 0.0, 0.0, 0.0, 0.0,        false,
                    0,   0,   "",  "",  "--:--:--", "--:--:--"};
-Solar solar = {0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0};
+Solar solar = {0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0};
 Readings readings[]{READINGS_ARRAY};
 Preferences storage;
 int numberOfReadings = sizeof(readings) / sizeof(readings[0]);
@@ -221,7 +221,9 @@ void setup() {
     xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL,
                             0);
     xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_daily_solar_t, "Get Daily Solar", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_monthly_solar_t, "Get Monthly Solar", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_current_solar_t, "Get Current Solar", 8192, NULL, 3, NULL, 0);
     xTaskCreate(displayStatusMessages_t, "DisplayStatus", 4096, NULL, 0, NULL);
   }
 }
@@ -307,7 +309,7 @@ void loop() {
 
   // Update solar values
   set_solar_values();
-  if (now() - solar.updateTime > 2 * SOLAR_UPDATE_INTERVAL) {
+  if (now() - solar.currentUpdateTime > 2 * SOLAR_CURRENT_UPDATE_INTERVAL) {
     lv_obj_set_style_text_color(ui_SolarStatus, lv_color_hex(COLOR_RED),
                                 LV_PART_MAIN);
   } else {
@@ -493,7 +495,7 @@ void logAndPublish(const char *format, ...) {
   Serial.println(messageBuffer);
 
   // Check if the MQTT client is connected and publish the message
-  if (xSemaphoreTake(mqttMutex, portMAX_DELAY) == pdTRUE) {
+  if (xSemaphoreTake(mqttMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
     // We have successfully acquired the lock
     esp_task_wdt_reset();
     if (mqttClient.connected()) {
@@ -524,7 +526,7 @@ void errorPublish(const char *format, ...) {
   Serial.println(messageBuffer);
 
   // Check if the MQTT client is connected and publish the message
-  if (xSemaphoreTake(mqttMutex, portMAX_DELAY) == pdTRUE) {
+  if (xSemaphoreTake(mqttMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
     // We have successfully acquired the lock
     esp_task_wdt_reset();
     if (mqttClient.connected()) {

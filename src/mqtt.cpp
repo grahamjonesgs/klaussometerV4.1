@@ -24,7 +24,7 @@ void receive_mqtt_messages_t(void *pvParams) {
       mqtt_connect();
     }
     // --- Protect the MQTT access with a mutex ---
-    if (xSemaphoreTake(mqttMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(mqttMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
       // We have successfully acquired the lock
       // Check for new messages only after ensuring connection is good
       messageSize = mqttClient.parseMessage();

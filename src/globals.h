@@ -44,7 +44,9 @@ struct Weather {
 };
 
 struct Solar {
-  time_t updateTime;
+  time_t currentUpdateTime;
+  time_t dailyUpdateTime;
+  time_t monthlyUpdateTime;
   float batteryCharge;
   float usingPower;
   float gridPower;
@@ -100,6 +102,8 @@ void set_basic_text_color(lv_color_t color);
 // APIs
 void get_uv_t(void *pvParameters);
 void get_weather_t(void *pvParameters);
-void get_solar_t(void *pvParameters);
+void get_current_solar_t(void *pvParameters);
+void get_daily_solar_t(void *pvParameters);
+void get_monthly_solar_t(void *pvParameters);
 const char *degreesToDirection(double degrees);
 const char *wmoToText(int code, bool isDay);

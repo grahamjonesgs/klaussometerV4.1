@@ -9,7 +9,7 @@ extern Solar solar;
 void set_solar_values() {
   char tempString[CHAR_LEN];
   // Set screen values
-  if (solar.updateTime > 0) {
+  if (solar.currentUpdateTime > 0) {
     lv_arc_set_value(ui_BatteryArc, solar.batteryCharge);
     snprintf(tempString, CHAR_LEN, "%2.0f%%", solar.batteryCharge);
     lv_label_set_text(ui_BatteryLabel, tempString);
@@ -36,7 +36,7 @@ void set_solar_values() {
           10 * (round(remain_minutes / 10)); // Round to 10 mins
 
       struct tm ts_end;
-      time_t end_time = solar.updateTime +
+      time_t end_time = solar.currentUpdateTime +
                         remain_minutes_round *
                             60; // find time of estimated end of battery charge
       char time_buf_end[80];
@@ -125,7 +125,7 @@ void set_solar_values() {
     // Set solar update times
     struct tm ts;
     char time_buf[80];
-    ts = *localtime(&solar.updateTime);
+    ts = *localtime(&solar.currentUpdateTime);
     strftime(time_buf, sizeof(time_buf), "%H:%M:%S", &ts);
     snprintf(tempString, CHAR_LEN, "Values as of %s\nReceived at %s",
              solar.time, time_buf);

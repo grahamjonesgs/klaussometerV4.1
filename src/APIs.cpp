@@ -8,6 +8,7 @@ extern Preferences storage;
 extern NTPClient timeClient;
 
 HTTPClient http;
+String token = "";
 
 // The semaphore to protect the HTTPClient object
 extern SemaphoreHandle_t httpMutex;
@@ -22,7 +23,7 @@ void get_uv_t(void *pvParameters) {
   while (true) {
     if (weather.isDay) {
       if (now() - weather.UVupdateTime > UV_UPDATE_INTERVAL) {
-        if (xSemaphoreTake(httpMutex, portMAX_DELAY) == pdTRUE) {
+        if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
           http.begin(
               "https://api.weatherbit.io/v2.0/current?city_id=3369157&key=" +
               String(apiKey));
@@ -45,8 +46,8 @@ void get_uv_t(void *pvParameters) {
                          http.errorToString(httpCode).c_str());
             logAndPublish("UV updated failed");
           }
-          xSemaphoreGive(httpMutex);
           http.end();
+          xSemaphoreGive(httpMutex);
         }
       }
     } else {
@@ -65,7 +66,7 @@ void get_uv_t(void *pvParameters) {
 void get_weather_t(void *pvParameters) {
   while (true) {
     if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
-      if (xSemaphoreTake(httpMutex, portMAX_DELAY) == pdTRUE) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
         http.begin(
             "https://api.open-meteo.com/v1/"
             "forecast?latitude=-33.9258&longitude=18.4232&daily=temperature_2m_"
@@ -110,8 +111,8 @@ void get_weather_t(void *pvParameters) {
                        http.errorToString(httpCode).c_str());
           logAndPublish("Weather updated failed");
         }
-        xSemaphoreGive(httpMutex);
         http.end();
+        xSemaphoreGive(httpMutex);
       }
     }
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -217,8 +218,8 @@ const char *wmoToText(int code, bool isDay) {
   }
 }
 
-// Get solar values from Solarman
-void get_solar_t(void *pvParameters) {
+// Get current solar values from Solarman
+void get_current_solar_t(void *pvParameters) {
 
   String solar_url = SOLAR_URL;
   String solar_appid = SOLAR_APPID;
@@ -226,15 +227,11 @@ void get_solar_t(void *pvParameters) {
   String solar_username = SOLAR_USERNAME;
   String solar_passhash = SOLAR_PASSHASH;
   String solar_stationid = SOLAR_STATIONID;
-  String token = "";
-  char currentDate[CHAR_LEN];
-  char currentYearMonth[CHAR_LEN];
-  char previousMonthYearMonth[CHAR_LEN];
 
   // Get station status
   while (true) {
-    if (now() - solar.updateTime > SOLAR_UPDATE_INTERVAL) {
-      if (xSemaphoreTake(httpMutex, portMAX_DELAY) == pdTRUE) {
+    if (now() - solar.currentUpdateTime > SOLAR_CURRENT_UPDATE_INTERVAL) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
         http.begin("https://" + solar_url +
                    "//station/v1.0/realTime?language=en");
         http.addHeader("Content-Type", "application/json");
@@ -262,7 +259,7 @@ void get_solar_t(void *pvParameters) {
               rec_time += TIME_OFFSET;
               ts = *localtime(&rec_time);
               strftime(time_buf, sizeof(time_buf), "%H:%M:%S", &ts);
-              solar.updateTime = now();
+              solar.currentUpdateTime = now();
               solar.solarPower = rec_solarPower / 1000;
               solar.batteryPower = rec_batteryPower / 1000;
               solar.usingPower = rec_usingPower / 1000;
@@ -356,6 +353,28 @@ void get_solar_t(void *pvParameters) {
           logAndPublish("Getting solar status failed");
         }
         http.end();
+        xSemaphoreGive(httpMutex);
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+}
+
+// Get current solar values from Solarman
+void get_daily_solar_t(void *pvParameters) {
+
+  String solar_url = SOLAR_URL;
+  String solar_username = SOLAR_USERNAME;
+  String solar_stationid = SOLAR_STATIONID;
+  char currentDate[CHAR_LEN];
+  char currentYearMonth[CHAR_LEN];
+  char previousMonthYearMonth[CHAR_LEN];
+
+  // Get station status
+  while (true) {
+    if (now() - solar.dailyUpdateTime > SOLAR_DAILY_UPDATE_INTERVAL) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        
         /*
           timeType 1 with start and end date of today gives array of size
           "total", then in stationDataItems -> batterySoc to get battery min/max
@@ -364,9 +383,9 @@ void get_solar_t(void *pvParameters) {
           end date of today (but now date only year month) gives this months's
           buy amount as stationDataItems -> buyValue
           */
-        time_t now = timeClient.getEpochTime();
-        struct tm CurrenTimeInfo = *localtime(&now);
-        time_t previousMonth = now - 30 * 24 * 3600; // One month ago
+        time_t now_time = timeClient.getEpochTime();
+        struct tm CurrenTimeInfo = *localtime(&now_time);
+        time_t previousMonth = now_time - 30 * 24 * 3600; // One month ago
         struct tm previousMonthTimeInfo = *localtime(&previousMonth);
 
         strftime(currentDate, sizeof(currentDate), "%Y-%m-%d", &CurrenTimeInfo);
@@ -381,7 +400,7 @@ void get_solar_t(void *pvParameters) {
         http.addHeader("Content-Type", "application/json");
         http.addHeader("Authorization", token);
 
-        httpCode = http.POST("{\n\"stationId\" : \"" + solar_stationid +
+        int httpCode = http.POST("{\n\"stationId\" : \"" + solar_stationid +
                              "\",\n\"timeType\" : 2,\n\"startTime\" : \"" +
                              currentDate + "\",\n\"endTime\" : \"" +
                              currentDate + "\"\n}");
@@ -396,6 +415,7 @@ void get_solar_t(void *pvParameters) {
               float today_buy = root["stationDataItems"][0]["buyValue"];
               solar.today_buy = today_buy;
               logAndPublish("Solar today's buy value updated");
+              solar.dailyUpdateTime = now();
             } else {
               String rec_msg = root["msg"];
             }
@@ -407,13 +427,54 @@ void get_solar_t(void *pvParameters) {
           logAndPublish("Getting solar today buy value failed");
         }
         http.end();
+        xSemaphoreGive(httpMutex);
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+}
+
+// Get current solar values from Solarman
+void get_monthly_solar_t(void *pvParameters) {
+
+  String solar_url = SOLAR_URL;
+  String solar_username = SOLAR_USERNAME;
+  String solar_stationid = SOLAR_STATIONID;
+  char currentDate[CHAR_LEN];
+  char currentYearMonth[CHAR_LEN];
+  char previousMonthYearMonth[CHAR_LEN];
+
+  // Get station status
+  while (true) {
+    if (now() - solar.monthlyUpdateTime > SOLAR_MONTHLY_UPDATE_INTERVAL) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        
+        /*
+          timeType 1 with start and end date of today gives array of size
+          "total", then in stationDataItems -> batterySoc to get battery min/max
+          for today timeType 2 with start and end date of today gives today's
+          buy amount as stationDataItems -> buyValue timeType 3 with start and
+          end date of today (but now date only year month) gives this months's
+          buy amount as stationDataItems -> buyValue
+          */
+        time_t now_time = timeClient.getEpochTime();
+        struct tm CurrenTimeInfo = *localtime(&now_time);
+        time_t previousMonth = now_time - 30 * 24 * 3600; // One month ago
+        struct tm previousMonthTimeInfo = *localtime(&previousMonth);
+
+        strftime(currentDate, sizeof(currentDate), "%Y-%m-%d", &CurrenTimeInfo);
+        strftime(currentYearMonth, sizeof(currentYearMonth), "%Y-%m",
+                 &CurrenTimeInfo);
+        strftime(previousMonthYearMonth, sizeof(previousMonthYearMonth),
+                 "%Y-%m", &previousMonthTimeInfo);
+
         // Get month buy value timeType 3
         http.begin("https://" + solar_url +
                    "//station/v1.0/history?language=en");
         http.addHeader("Content-Type", "application/json");
         http.addHeader("Authorization", token);
 
-        httpCode = http.POST("{\n\"stationId\" : \"" + solar_stationid +
+        int httpCode = http.POST("{\n\"stationId\" : \"" + solar_stationid +
                              "\",\n\"timeType\" : 3,\n\"startTime\" : \"" +
                              currentYearMonth + "\",\n\"endTime\" : \"" +
                              currentYearMonth + "\"\n}");
@@ -428,6 +489,7 @@ void get_solar_t(void *pvParameters) {
               float month_buy = root["stationDataItems"][0]["buyValue"];
 
               solar.month_buy = month_buy;
+              solar.monthlyUpdateTime = now();
               logAndPublish("Solar month's buy value updated");
             }
           }
@@ -437,8 +499,8 @@ void get_solar_t(void *pvParameters) {
           String payload = http.getString();
           logAndPublish("Getting solar month buy value failed");
         }
-        xSemaphoreGive(httpMutex);
         http.end();
+        xSemaphoreGive(httpMutex);
       }
     }
     vTaskDelay(pdMS_TO_TICKS(100));
