@@ -12,12 +12,12 @@ Events Core 1
 Arduino Core 0
 */
 
-#include "FreeRTOS.h" // Include FreeRTOS for queue functionality
+#include <FreeRTOS.h> // Include FreeRTOS for queue functionality
+#include "UI/ui.h"
 #include "klaussometer.h"
 #include "queue.h" // Queue-specific functions
 #include "task.h"  // Task-specific functions
 #include "time.h"
-#include "UI/ui.h"
 #include "wifi_user.h"
 #include <ArduinoJson.h>
 #include <ArduinoMqttClient.h>
@@ -30,12 +30,12 @@ Arduino Core 0
 #include <WiFiClientSecure.h>
 #include <WiFiUdp.h>
 #include <Wire.h>
+#include <esp_task_wdt.h>
 #include <globals.h>
 #include <klaussometer.h>
 #include <lvgl.h>   // Version 8.4 tested
 #include <lvgl.h>   // For LVGL UI functions
 #include <stdarg.h> // For va_list, va_start, va_end
-#include <esp_task_wdt.h>
 
 // Create network objects
 WiFiClient espClient;
@@ -50,7 +50,8 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", TIME_OFFSET, 60000);
 void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
 Weather weather = {0.0, 0.0, 0.0, 0.0, 0.0,        false,
                    0,   0,   "",  "",  "--:--:--", "--:--:--"};
-Solar solar = {0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0};
+Solar solar = {0,   0,          0,   0.0, 0.0,   0.0, 0.0,
+               0.0, "--:--:--", 100, 0,   false, 0.0, 0.0};
 Readings readings[]{READINGS_ARRAY};
 Preferences storage;
 int numberOfReadings = sizeof(readings) / sizeof(readings[0]);
@@ -216,14 +217,17 @@ void setup() {
     logAndPublish("MQTT server connected");
 
     // Start tasks
-    xTaskCreatePinnedToCore(receive_mqtt_messages_t, "mqtt", 16384, NULL, 4,
+    xTaskCreatePinnedToCore(receive_mqtt_messages_t, "Receive Mqtt messages", 16384, NULL, 4,
                             NULL, 0);
     xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL,
                             0);
     xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(get_daily_solar_t, "Get Daily Solar", 8192, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(get_monthly_solar_t, "Get Monthly Solar", 8192, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(get_current_solar_t, "Get Current Solar", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_daily_solar_t, "Get Daily Solar", 8192, NULL, 3,
+                            NULL, 0);
+    xTaskCreatePinnedToCore(get_monthly_solar_t, "Get Monthly Solar", 8192,
+                            NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_current_solar_t, "Get Current Solar", 8192,
+                            NULL, 3, NULL, 0);
     xTaskCreate(displayStatusMessages_t, "DisplayStatus", 4096, NULL, 0, NULL);
   }
 }

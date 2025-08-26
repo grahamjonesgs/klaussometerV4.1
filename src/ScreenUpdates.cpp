@@ -1,10 +1,11 @@
 
-#include <globals.h>
+#include <cstdio>
+#include "globals.h"
 
 extern Readings readings[];
 extern Weather weather;
 extern Solar solar;
-
+ 
 // Set solar values in GUI
 void set_solar_values() {
   char tempString[CHAR_LEN];

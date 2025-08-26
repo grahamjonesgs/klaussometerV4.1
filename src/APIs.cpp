@@ -12,9 +12,6 @@ String token = "";
 
 // The semaphore to protect the HTTPClient object
 extern SemaphoreHandle_t httpMutex;
-// HTTPClient httpClientUV;
-// HTTPClient http;
-// HTTPClient http;
 
 // Get weather from weatherbit.io
 void get_uv_t(void *pvParameters) {
@@ -23,7 +20,7 @@ void get_uv_t(void *pvParameters) {
   while (true) {
     if (weather.isDay) {
       if (now() - weather.UVupdateTime > UV_UPDATE_INTERVAL) {
-        if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
           http.begin(
               "https://api.weatherbit.io/v2.0/current?city_id=3369157&key=" +
               String(apiKey));
@@ -31,7 +28,6 @@ void get_uv_t(void *pvParameters) {
           if (httpCode > 0) {
             if (httpCode == HTTP_CODE_OK) {
               String payload = http.getString();
-
               JsonDocument root;
               deserializeJson(root, payload);
               float UV = root["data"][0]["uv"];
@@ -40,14 +36,18 @@ void get_uv_t(void *pvParameters) {
               logAndPublish("UV updated");
               timeClient.getFormattedTime().toCharArray(weather.UV_time_string,
                                                         CHAR_LEN);
+              http.end();
+              xSemaphoreGive(httpMutex);
             }
           } else {
+            http.end();
+            xSemaphoreGive(httpMutex);
             errorPublish("[HTTP] GET UV failed, error: %s\n",
                          http.errorToString(httpCode).c_str());
             logAndPublish("UV updated failed");
+            vTaskDelay(
+                pdMS_TO_TICKS(300000)); // Stop calling too often for errors
           }
-          http.end();
-          xSemaphoreGive(httpMutex);
         }
       }
     } else {
@@ -59,14 +59,14 @@ void get_uv_t(void *pvParameters) {
       timeClient.getFormattedTime().toCharArray(weather.UV_time_string,
                                                 CHAR_LEN);
     }
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
 void get_weather_t(void *pvParameters) {
   while (true) {
     if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
-      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         http.begin(
             "https://api.open-meteo.com/v1/"
             "forecast?latitude=-33.9258&longitude=18.4232&daily=temperature_2m_"
@@ -94,8 +94,6 @@ void get_weather_t(void *pvParameters) {
             weather.maxTemp = weatherMaxTemp;
             weather.minTemp = weatherMinTemp;
             weather.isDay = weatherIsDay;
-            Serial.printf("Weather update time: %ld, temperature: %2.1f\n",
-                          weather.updateTime, weather.temperature);
             strncpy(weather.description, wmoToText(weatherCode, weatherIsDay),
                     CHAR_LEN);
             strncpy(weather.windDir, degreesToDirection(weatherWindDir),
@@ -104,18 +102,22 @@ void get_weather_t(void *pvParameters) {
             weather.updateTime = now();
             timeClient.getFormattedTime().toCharArray(
                 weather.weather_time_string, CHAR_LEN);
+            http.end();
+            xSemaphoreGive(httpMutex);
             logAndPublish("Weather updated");
           }
         } else {
+          http.end();
+          xSemaphoreGive(httpMutex);
           errorPublish("[HTTP] GET current weather failed, error: %s\n",
                        http.errorToString(httpCode).c_str());
           logAndPublish("Weather updated failed");
+          vTaskDelay(
+              pdMS_TO_TICKS(300000)); // Stop calling too often for errors
         }
-        http.end();
-        xSemaphoreGive(httpMutex);
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
@@ -231,7 +233,7 @@ void get_current_solar_t(void *pvParameters) {
   // Get station status
   while (true) {
     if (now() - solar.currentUpdateTime > SOLAR_CURRENT_UPDATE_INTERVAL) {
-      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
         http.begin("https://" + solar_url +
                    "//station/v1.0/realTime?language=en");
         http.addHeader("Content-Type", "application/json");
@@ -300,7 +302,8 @@ void get_current_solar_t(void *pvParameters) {
                 storage.putFloat("solarmax", solar.today_battery_max);
                 storage.end();
               }
-
+              http.end();
+              xSemaphoreGive(httpMutex);
               logAndPublish("Solar status updated");
             } else {
               if (root["msg"].is<const char *>()) {
@@ -330,15 +333,25 @@ void get_current_solar_t(void *pvParameters) {
                             logAndPublish("Solar token obtained");
                             token = rec_token;
                             token = "bearer " + token;
+                            http.end();
+                            xSemaphoreGive(httpMutex);
                           } else {
+                            http.end();
+                            xSemaphoreGive(httpMutex);
                             logAndPublish("Solar token error");
+                            vTaskDelay(pdMS_TO_TICKS(
+                                300000)); // Stop asking too often for token
                           }
                         }
                       } else {
+                        http.end();
+                        xSemaphoreGive(httpMutex);
                         errorPublish(
                             "[HTTP] GET solar token failed, error: %s\n",
                             http.errorToString(httpCode).c_str());
                         logAndPublish("Getting solar token failed");
+                        vTaskDelay(
+                            pdMS_TO_TICKS(300000)); // Stop calling too often
                       }
                     }
                   }
@@ -347,16 +360,18 @@ void get_current_solar_t(void *pvParameters) {
             }
           }
         } else {
+          http.end();
+          xSemaphoreGive(httpMutex);
           errorPublish("[HTTP] GET solar status failed, error: %s\n",
                        http.errorToString(httpCode).c_str());
           String payload = http.getString();
           logAndPublish("Getting solar status failed");
+          vTaskDelay(
+              pdMS_TO_TICKS(300000)); // Stop calling too often for errors
         }
-        http.end();
-        xSemaphoreGive(httpMutex);
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
@@ -372,9 +387,9 @@ void get_daily_solar_t(void *pvParameters) {
 
   // Get station status
   while (true) {
-    if (now() - solar.dailyUpdateTime > SOLAR_DAILY_UPDATE_INTERVAL) {
-      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        
+    if ((now() - solar.dailyUpdateTime > SOLAR_DAILY_UPDATE_INTERVAL)&&(token!="")) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
+
         /*
           timeType 1 with start and end date of today gives array of size
           "total", then in stationDataItems -> batterySoc to get battery min/max
@@ -401,9 +416,9 @@ void get_daily_solar_t(void *pvParameters) {
         http.addHeader("Authorization", token);
 
         int httpCode = http.POST("{\n\"stationId\" : \"" + solar_stationid +
-                             "\",\n\"timeType\" : 2,\n\"startTime\" : \"" +
-                             currentDate + "\",\n\"endTime\" : \"" +
-                             currentDate + "\"\n}");
+                                 "\",\n\"timeType\" : 2,\n\"startTime\" : \"" +
+                                 currentDate + "\",\n\"endTime\" : \"" +
+                                 currentDate + "\"\n}");
         vTaskDelay(pdMS_TO_TICKS(100));
         if (httpCode > 0) {
           if (httpCode == HTTP_CODE_OK) {
@@ -425,12 +440,14 @@ void get_daily_solar_t(void *pvParameters) {
                        http.errorToString(httpCode).c_str());
           String payload = http.getString();
           logAndPublish("Getting solar today buy value failed");
+          vTaskDelay(
+              pdMS_TO_TICKS(300000)); // Stop calling too often for errors
         }
         http.end();
         xSemaphoreGive(httpMutex);
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
@@ -446,9 +463,9 @@ void get_monthly_solar_t(void *pvParameters) {
 
   // Get station status
   while (true) {
-    if (now() - solar.monthlyUpdateTime > SOLAR_MONTHLY_UPDATE_INTERVAL) {
-      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        
+    if ((now() - solar.monthlyUpdateTime > SOLAR_MONTHLY_UPDATE_INTERVAL)&&(token!="")) {
+      if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
+
         /*
           timeType 1 with start and end date of today gives array of size
           "total", then in stationDataItems -> batterySoc to get battery min/max
@@ -475,9 +492,9 @@ void get_monthly_solar_t(void *pvParameters) {
         http.addHeader("Authorization", token);
 
         int httpCode = http.POST("{\n\"stationId\" : \"" + solar_stationid +
-                             "\",\n\"timeType\" : 3,\n\"startTime\" : \"" +
-                             currentYearMonth + "\",\n\"endTime\" : \"" +
-                             currentYearMonth + "\"\n}");
+                                 "\",\n\"timeType\" : 3,\n\"startTime\" : \"" +
+                                 currentYearMonth + "\",\n\"endTime\" : \"" +
+                                 currentYearMonth + "\"\n}");
         vTaskDelay(pdMS_TO_TICKS(100));
         if (httpCode > 0) {
           if (httpCode == HTTP_CODE_OK) {
@@ -498,11 +515,13 @@ void get_monthly_solar_t(void *pvParameters) {
                        http.errorToString(httpCode).c_str());
           String payload = http.getString();
           logAndPublish("Getting solar month buy value failed");
+          vTaskDelay(
+              pdMS_TO_TICKS(300000)); // Stop calling too often for errors
         }
         http.end();
         xSemaphoreGive(httpMutex);
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
