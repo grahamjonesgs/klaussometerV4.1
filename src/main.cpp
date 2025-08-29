@@ -228,10 +228,10 @@ void loop() {
     char icon;
     lv_color_t colour;
 
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(50));
     lv_timer_handler(); // Run GUI
-    // Update values
 
+    // Update values
     for (unsigned char i = 0; i < ROOM_COUNT; ++i) {
         lv_arc_set_value(*tempArcs[i], readings[i].currentValue);
         lv_label_set_text(*tempLabels[i], readings[i].output);
@@ -244,7 +244,6 @@ void loop() {
     }
 
     // Battery updates
-
     for (unsigned char i = 0; i < ROOM_COUNT; ++i) {
         getBatteryStatus(readings[i + 2 * ROOM_COUNT].currentValue, readings[i + 2 * ROOM_COUNT].readingIndex, &icon, &colour);
         snprintf(tempString, CHAR_LEN, "%c", icon);
