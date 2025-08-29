@@ -2,6 +2,7 @@
 #include "globals.h"
 
 extern Weather weather;
+extern UV uv;
 extern Solar solar;
 extern Preferences storage;
 extern NTPClient timeClient;
@@ -12,13 +13,13 @@ String token = "";
 // The semaphore to protect the HTTPClient object
 extern SemaphoreHandle_t httpMutex;
 
-// Get weather from weatherbit.io
+// Get UV from weatherbit.io
 void get_uv_t(void* pvParameters) {
 
     const char apiKey[] = WEATHERBIT_API;
     while (true) {
         if (weather.isDay) {
-            if (now() - weather.UVupdateTime > UV_UPDATE_INTERVAL) {
+            if (now() - uv.updateTime > UV_UPDATE_INTERVAL) {
                 if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
                     http.begin("https://api.weatherbit.io/v2.0/"
                                "current?city_id=3369157&key=" +
@@ -29,10 +30,10 @@ void get_uv_t(void* pvParameters) {
                         JsonDocument root;
                         deserializeJson(root, payload);
                         float UV = root["data"][0]["uv"];
-                        weather.UV = UV;
-                        weather.UVupdateTime = now();
+                        uv.index = UV;
+                        uv.updateTime = now();
                         logAndPublish("UV updated");
-                        timeClient.getFormattedTime().toCharArray(weather.UV_time_string, CHAR_LEN);
+                        timeClient.getFormattedTime().toCharArray(uv.time_string, CHAR_LEN);
                         http.end();
                         xSemaphoreGive(httpMutex);
                     } else {
@@ -45,19 +46,18 @@ void get_uv_t(void* pvParameters) {
                 }
             }
         } else {
-            weather.UV = 0.0;
+            uv.index = 0.0;
             if (weather.updateTime > 0) { // Only update if the weather is valid so
                 // the day / night is valid
-                weather.UVupdateTime = now();
+                uv.updateTime = now();
             }
-            timeClient.getFormattedTime().toCharArray(weather.UV_time_string, CHAR_LEN);
+            timeClient.getFormattedTime().toCharArray(uv.time_string, CHAR_LEN);
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
 void get_weather_t(void* pvParameters) {
-
     while (true) {
         if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
             if (xSemaphoreTake(httpMutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
@@ -93,7 +93,7 @@ void get_weather_t(void* pvParameters) {
                         strncpy(weather.windDir, degreesToDirection(weatherWindDir), CHAR_LEN);
 
                         weather.updateTime = now();
-                        timeClient.getFormattedTime().toCharArray(weather.weather_time_string, CHAR_LEN);
+                        timeClient.getFormattedTime().toCharArray(weather.time_string, CHAR_LEN);
                         http.end();
                         xSemaphoreGive(httpMutex);
                         logAndPublish("Weather updated");
@@ -348,7 +348,7 @@ void get_current_solar_t(void* pvParameters) {
                     errorPublish("[HTTP] GET solar status failed, error: %s\n", http.errorToString(httpCode).c_str());
                     String payload = http.getString();
                     logAndPublish("Getting solar status failed");
-                    vTaskDelay(pdMS_TO_TICKS(300000)); // Stop calling too often for errors
+                    vTaskDelay(pdMS_TO_TICKS(30000)); // Stop calling too often for errors
                 }
             }
         }
@@ -413,7 +413,7 @@ void get_daily_solar_t(void* pvParameters) {
                     errorPublish("[HTTP] GET solar today buy value failed, error: %s\n", http.errorToString(httpCode).c_str());
                     String payload = http.getString();
                     logAndPublish("Getting solar today buy value failed");
-                    vTaskDelay(pdMS_TO_TICKS(300000)); // Stop calling too often for errors
+                    vTaskDelay(pdMS_TO_TICKS(30000)); // Stop calling too often for errors
                 }
                 http.end();
                 xSemaphoreGive(httpMutex);
@@ -479,7 +479,7 @@ void get_monthly_solar_t(void* pvParameters) {
                     errorPublish("[HTTP] GET solar month buy value failed, error: %s\n", http.errorToString(httpCode).c_str());
                     String payload = http.getString();
                     logAndPublish("Getting solar month buy value failed");
-                    vTaskDelay(pdMS_TO_TICKS(300000)); // Stop calling too often for errors
+                    vTaskDelay(pdMS_TO_TICKS(30000)); // Stop calling too often for errors
                 }
                 http.end();
                 xSemaphoreGive(httpMutex);

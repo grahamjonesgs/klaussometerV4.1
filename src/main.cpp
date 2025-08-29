@@ -50,7 +50,8 @@ SemaphoreHandle_t httpMutex;
 time_t statusChangeTime = 0;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", TIME_OFFSET, 60000);
 void touch_read(lv_indev_drv_t* indev_driver, lv_indev_data_t* data);
-Weather weather = {0.0, 0.0, 0.0, 0.0, 0.0, false, 0, 0, "", "", "--:--:--", "--:--:--"};
+Weather weather = {0.0, 0.0, 0.0, 0.0, false, 0, "", "", "--:--:--"};
+UV uv = {0.0, 0, "--:--:--"};
 Solar solar = {0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0};
 Readings readings[]{READINGS_ARRAY};
 Preferences storage;
@@ -198,6 +199,18 @@ void setup() {
         mqtt_connect();
         logAndPublish("MQTT server connected");
 
+        // Get old battery min and max
+        storage.begin("KO");
+        solar.today_battery_min = storage.getFloat("solarmin");
+        if (isnan(solar.today_battery_min)) {
+            solar.today_battery_min = 100;
+        }
+        solar.today_battery_max = storage.getFloat("solarmax");
+        if (isnan(solar.today_battery_max)) {
+            solar.today_battery_max = 0;
+        }
+        storage.end();
+
         // Start tasks
         xTaskCreatePinnedToCore(receive_mqtt_messages_t, "Receive Mqtt messages", 8192, NULL, 4, NULL, 0);
         xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL, 0);
@@ -240,23 +253,23 @@ void loop() {
     }
 
     // Update UV
-    if (weather.UVupdateTime > 0) {
-        snprintf(tempString, CHAR_LEN, "Updated %s", weather.UV_time_string);
+    if (uv.updateTime > 0) {
+        snprintf(tempString, CHAR_LEN, "Updated %s", uv.time_string);
         lv_label_set_text(ui_UVUpdateTime, tempString);
-        snprintf(tempString, CHAR_LEN, "%2.1f", weather.UV);
+        snprintf(tempString, CHAR_LEN, "%2.1f", uv.index);
         lv_label_set_text(ui_UVLabel, tempString);
-        lv_arc_set_value(ui_UVArc, weather.UV * 10);
+        lv_arc_set_value(ui_UVArc, uv.index * 10);
 
-        lv_obj_set_style_arc_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)),
+        lv_obj_set_style_arc_color(ui_UVArc, lv_color_hex(uv_color(uv.index)),
                                    LV_PART_INDICATOR | LV_STATE_DEFAULT); // Set arc to color
-        lv_obj_set_style_bg_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)),
+        lv_obj_set_style_bg_color(ui_UVArc, lv_color_hex(uv_color(uv.index)),
                                   LV_PART_KNOB | LV_STATE_DEFAULT); // Set arc to color
     }
 
     // Update weather values
     if (weather.updateTime > 0) {
         lv_label_set_text(ui_FCConditions, weather.description);
-        snprintf(tempString, CHAR_LEN, "Updated %s", weather.weather_time_string);
+        snprintf(tempString, CHAR_LEN, "Updated %s", weather.time_string);
         lv_label_set_text(ui_FCUpdateTime, tempString);
         snprintf(tempString, CHAR_LEN, "Wind %2.0f km/h %s", weather.windSpeed, weather.windDir);
         lv_label_set_text(ui_FCWindSpeed, tempString);
@@ -296,16 +309,16 @@ void loop() {
         lv_obj_set_style_text_color(ui_WeatherStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
     }
 
-    if (WiFi.status() != WL_CONNECTED) {
-        lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
-    } else {
+    if (WiFi.status() == WL_CONNECTED) {
         lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_text_color(ui_WiFiStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
     }
 
     if (mqttClient.connected()) {
-        lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
-    } else {
         lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_text_color(ui_ServerStatus, lv_color_hex(COLOR_RED), LV_PART_MAIN);
     }
 
     // Update time and screen brightness

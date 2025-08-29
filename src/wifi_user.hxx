@@ -1,4 +1,4 @@
-// Upate with WiFI and MQTT definitions, save as .h file
+// Update with WiFI and MQTT definitions, save as .h file
 #define WIFI_SSID "xxx"         
 #define WIFI_PASSWORD "xxx"
 
@@ -18,4 +18,5 @@
 
 #define BATTERY_CAPACITY 10.6
 #define BATTERY_MIN 0.15
-#define ELECTRICY_PRICE 0.4426 // Rand per kWh
+#define ELECTRICITY_PRICE 0.4426 // Rand per kWh
+#define TIME_OFFSET 7200

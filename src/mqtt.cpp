@@ -19,10 +19,10 @@ void receive_mqtt_messages_t(void* pvParams) {
     while (true) {
         // Reconnect if necessary
         if (WiFi.status() != WL_CONNECTED) {
-          setup_wifi();
+            setup_wifi();
         }
         if (!mqttClient.connected()) {
-          mqtt_connect();
+            mqtt_connect();
         }
         if (xSemaphoreTake(mqttMutex, pdMS_TO_TICKS(500)) == pdTRUE) {
             messageSize = mqttClient.parseMessage();
@@ -48,8 +48,8 @@ void receive_mqtt_messages_t(void* pvParams) {
                     }
                 }
             } else {
-              // No message
-              xSemaphoreGive(mqttMutex);
+                // No message
+                xSemaphoreGive(mqttMutex);
             }
         }
         vTaskDelay(pdMS_TO_TICKS(100));
