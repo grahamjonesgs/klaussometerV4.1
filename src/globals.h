@@ -1,4 +1,4 @@
-#include <lvgl.h>  // Version 8.4 tested
+//#include <lvgl.h>  // Version 8.4 tested
 #include "UI/ui.h"
 #include <Arduino_GFX_Library.h>
 #include <TAMC_GT911.h>

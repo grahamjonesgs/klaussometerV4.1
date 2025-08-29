@@ -22,5 +22,6 @@
         "thesauruss",
         "ukmo",
         "UNSCII"
-    ]
+    ],
+    "cmake.sourceDirectory": "/Users/gjonesblackcyton/Documents/PlatformIO/Projects/klaussometerV4.1/src/UI"
 }

@@ -20,7 +20,6 @@
   {"Bedroom", "bedroom/battery/set", NO_READING, 0.0, {0.0}, CHAR_NO_MESSAGE, false, DATA_BATTERY, 0,0}, \
   {"Outside", "outside/battery/set", NO_READING, 0.0, {0.0}, CHAR_NO_MESSAGE, false, DATA_BATTERY, 0,0}
 
-  
 #define ROOM_NAME_LABELS {&ui_RoomName1, &ui_RoomName2, &ui_RoomName3, &ui_RoomName4, &ui_RoomName5}  
 #define TEMP_ARC_LABELS {&ui_TempArc1, &ui_TempArc2, &ui_TempArc3, &ui_TempArc4, &ui_TempArc5}
 #define TEMP_LABELS {&ui_TempLabel1, &ui_TempLabel2, &ui_TempLabel3, &ui_TempLabel4, &ui_TempLabel5}
@@ -77,7 +76,7 @@
 #define TOUCH_RST 38
 #define TFT_BL 10
 
-#define WIFI_RETRIES 100  // Number of times to retry the wifi before a restart
+#define WIFI_RETRIES 10  // Number of times to retry the wifi before a restart
 #define CHAR_LEN 255
 
 #define PIN_SD_CMD 11
