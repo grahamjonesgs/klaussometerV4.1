@@ -70,34 +70,32 @@ void get_weather_t(void* pvParameters) {
                            "weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&"
                            "forecast_days=1");
                 int httpCode = http.GET();
-                if (httpCode > 0) {
-                    if (httpCode == HTTP_CODE_OK) {
-                        String payload = http.getString();
-                        JsonDocument root;
-                        deserializeJson(root, payload);
+                if (httpCode == HTTP_CODE_OK) {
+                    String payload = http.getString();
+                    JsonDocument root;
+                    deserializeJson(root, payload);
 
-                        float weatherTemperature = root["current"]["temperature_2m"];
-                        float weatherWindDir = root["current"]["wind_direction_10m"];
-                        float weatherWindSpeed = root["current"]["wind_speed_10m"];
-                        float weatherMaxTemp = root["daily"]["temperature_2m_max"][0];
-                        float weatherMinTemp = root["daily"]["temperature_2m_min"][0];
-                        bool weatherIsDay = root["current"]["is_day"];
-                        int weatherCode = root["current"]["weather_code"];
+                    float weatherTemperature = root["current"]["temperature_2m"];
+                    float weatherWindDir = root["current"]["wind_direction_10m"];
+                    float weatherWindSpeed = root["current"]["wind_speed_10m"];
+                    float weatherMaxTemp = root["daily"]["temperature_2m_max"][0];
+                    float weatherMinTemp = root["daily"]["temperature_2m_min"][0];
+                    bool weatherIsDay = root["current"]["is_day"];
+                    int weatherCode = root["current"]["weather_code"];
 
-                        weather.temperature = weatherTemperature;
-                        weather.windSpeed = weatherWindSpeed;
-                        weather.maxTemp = weatherMaxTemp;
-                        weather.minTemp = weatherMinTemp;
-                        weather.isDay = weatherIsDay;
-                        strncpy(weather.description, wmoToText(weatherCode, weatherIsDay), CHAR_LEN);
-                        strncpy(weather.windDir, degreesToDirection(weatherWindDir), CHAR_LEN);
+                    weather.temperature = weatherTemperature;
+                    weather.windSpeed = weatherWindSpeed;
+                    weather.maxTemp = weatherMaxTemp;
+                    weather.minTemp = weatherMinTemp;
+                    weather.isDay = weatherIsDay;
+                    strncpy(weather.description, wmoToText(weatherCode, weatherIsDay), CHAR_LEN);
+                    strncpy(weather.windDir, degreesToDirection(weatherWindDir), CHAR_LEN);
 
-                        weather.updateTime = now();
-                        timeClient.getFormattedTime().toCharArray(weather.time_string, CHAR_LEN);
-                        http.end();
-                        xSemaphoreGive(httpMutex);
-                        logAndPublish("Weather updated");
-                    }
+                    weather.updateTime = now();
+                    timeClient.getFormattedTime().toCharArray(weather.time_string, CHAR_LEN);
+                    http.end();
+                    xSemaphoreGive(httpMutex);
+                    logAndPublish("Weather updated");
                 } else {
                     http.end();
                     xSemaphoreGive(httpMutex);
@@ -243,10 +241,10 @@ void get_current_solar_t(void* pvParameters) {
                         float rec_solarPower = root["generationPower"];
 
                         struct tm ts;
-                        char time_buf[80];
+                        char time_buf[CHAR_LEN];
 
                         rec_time += TIME_OFFSET;
-                        ts = *localtime(&rec_time);
+                        localtime_r(&rec_time, &ts);
                         strftime(time_buf, sizeof(time_buf), "%H:%M:%S", &ts);
                         solar.currentUpdateTime = now();
                         solar.solarPower = rec_solarPower / 1000;
@@ -305,27 +303,25 @@ void get_current_solar_t(void* pvParameters) {
                                         int httpCode = http.POST("{\n\"appSecret\" : \"" + solar_secret + "\", \n\"email\" : \"" + solar_username + "\",\n\"password\" : \"" +
                                                                  solar_passhash + "\"\n}");
                                         vTaskDelay(pdMS_TO_TICKS(100));
-                                        if (httpCode > 0) {
-                                            if (httpCode == HTTP_CODE_OK) {
-                                                String payload = http.getString();
-                                                JsonDocument root;
-                                                deserializeJson(root, payload);
-                                                if (root["access_token"].is<const char*>()) {
-                                                    const char* rec_token = root["access_token"];
-                                                    logAndPublish("Solar token "
-                                                                  "obtained");
-                                                    token = rec_token;
-                                                    token = "bearer " + token;
-                                                    http.end();
-                                                    xSemaphoreGive(httpMutex);
-                                                } else {
-                                                    http.end();
-                                                    xSemaphoreGive(httpMutex);
-                                                    logAndPublish("Solar token error");
-                                                    vTaskDelay(pdMS_TO_TICKS(30000)); // Stop asking
-                                                                                      // too often
-                                                                                      // for token
-                                                }
+                                        if (httpCode == HTTP_CODE_OK) {
+                                            String payload = http.getString();
+                                            JsonDocument root;
+                                            deserializeJson(root, payload);
+                                            if (root["access_token"].is<const char*>()) {
+                                                const char* rec_token = root["access_token"];
+                                                logAndPublish("Solar token "
+                                                              "obtained");
+                                                token = rec_token;
+                                                token = "bearer " + token;
+                                                http.end();
+                                                xSemaphoreGive(httpMutex);
+                                            } else {
+                                                http.end();
+                                                xSemaphoreGive(httpMutex);
+                                                logAndPublish("Solar token error");
+                                                vTaskDelay(pdMS_TO_TICKS(30000)); // Stop asking
+                                                                                  // too often
+                                                                                  // for token
                                             }
                                         } else {
                                             http.end();
@@ -380,9 +376,11 @@ void get_daily_solar_t(void* pvParameters) {
                   -> buyValue
                   */
                 time_t now_time = timeClient.getEpochTime();
-                struct tm CurrenTimeInfo = *localtime(&now_time);
+                struct tm CurrenTimeInfo;
+                localtime_r(&now_time, &CurrenTimeInfo);
                 time_t previousMonth = now_time - 30 * 24 * 3600; // One month ago
-                struct tm previousMonthTimeInfo = *localtime(&previousMonth);
+                struct tm previousMonthTimeInfo;
+                localtime_r(&previousMonth, &previousMonthTimeInfo);
 
                 strftime(currentDate, sizeof(currentDate), "%Y-%m-%d", &CurrenTimeInfo);
                 strftime(currentYearMonth, sizeof(currentYearMonth), "%Y-%m", &CurrenTimeInfo);
@@ -447,12 +445,14 @@ void get_monthly_solar_t(void* pvParameters) {
                   -> buyValue
                   */
                 time_t now_time = timeClient.getEpochTime();
-                struct tm CurrenTimeInfo = *localtime(&now_time);
+                struct tm CurrentTimeInfo;
+                localtime_r(&now_time, &CurrentTimeInfo);
                 time_t previousMonth = now_time - 30 * 24 * 3600; // One month ago
-                struct tm previousMonthTimeInfo = *localtime(&previousMonth);
+                struct tm previousMonthTimeInfo;
+                localtime_r(&previousMonth, &previousMonthTimeInfo);
 
-                strftime(currentDate, sizeof(currentDate), "%Y-%m-%d", &CurrenTimeInfo);
-                strftime(currentYearMonth, sizeof(currentYearMonth), "%Y-%m", &CurrenTimeInfo);
+                strftime(currentDate, sizeof(currentDate), "%Y-%m-%d", &CurrentTimeInfo);
+                strftime(currentYearMonth, sizeof(currentYearMonth), "%Y-%m", &CurrentTimeInfo);
                 strftime(previousMonthYearMonth, sizeof(previousMonthYearMonth), "%Y-%m", &previousMonthTimeInfo);
 
                 // Get month buy value timeType 3

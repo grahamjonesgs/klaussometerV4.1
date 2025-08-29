@@ -91,13 +91,13 @@ void set_solar_values()
               float remain_hours = -(0.99 - solar.batteryCharge / 100)
                                    * BATTERY_CAPACITY / solar.batteryPower;
               int remain_minutes = 60.0 * remain_hours;
-              int remain__minutes = 10 * (round(remain_minutes / 10));
+              int remain_minutes_round = 10 * (round(remain_minutes / 10));
 
               if((floor(remain_hours) == 1) && (remain_minutes > 0))
                 {
                   snprintf(tempString, CHAR_LEN,
                            "%2.0f hour %i mins to\n fully charged",
-                           remain_hours, remain__minutes % 60);
+                           remain_hours, remain_minutes_round % 60);
                 }
               else
                 {
@@ -106,7 +106,7 @@ void set_solar_values()
                     {
                       snprintf(tempString, CHAR_LEN,
                                "%2.0f hours %i mins to\n fully charged",
-                               remain_hours, remain__minutes % 60);
+                               remain_hours, remain_minutes_round % 60);
                     }
                   else
                     {
