@@ -1,7 +1,5 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
-#include <cstdint>
-#include <time.h>
 
 #define STORED_READING 6
 #define READINGS_ARRAY                                                                                                             \
@@ -69,7 +67,6 @@ static const int MAX_SOLAR_TIME_STATUS = 24;           // Max time in hours for 
 
 static const int SCREEN_W = 1024;
 static const int SCREEN_H = 600;
-#define TOUCH_ROTATION ROTATION_INVERTED
 
 static const int I2C_SDA_PIN = 17;
 static const int I2C_SCL_PIN = 18;

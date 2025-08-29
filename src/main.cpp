@@ -382,20 +382,20 @@ void pin_init() {
 
     vTaskDelay(pdMS_TO_TICKS(100));
     digitalWrite(TOUCH_RST, LOW);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(100));
     digitalWrite(TOUCH_RST, HIGH);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(100));
     digitalWrite(TOUCH_RST, LOW);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(100));
     digitalWrite(TOUCH_RST, HIGH);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(100));
 }
 
 // Initialise touch screen
 void touch_init(void) {
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     ts.begin();
-    ts.setRotation(TOUCH_ROTATION);
+    ts.setRotation(ROTATION_INVERTED);
 }
 
 void touch_read(lv_indev_drv_t* indev_driver, lv_indev_data_t* data) {

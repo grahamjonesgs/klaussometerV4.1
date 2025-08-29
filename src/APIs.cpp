@@ -300,10 +300,10 @@ void get_current_solar_t(void* pvParameters) {
                                         http.begin("https://" + solar_url + "/account/v1.0/token?" + "appId=" + solar_appid);
                                         http.addHeader("Content-Type", "application/json");
 
-                                        int httpCode = http.POST("{\n\"appSecret\" : \"" + solar_secret + "\", \n\"email\" : \"" + solar_username + "\",\n\"password\" : \"" +
+                                        int httpCode_token = http.POST("{\n\"appSecret\" : \"" + solar_secret + "\", \n\"email\" : \"" + solar_username + "\",\n\"password\" : \"" +
                                                                  solar_passhash + "\"\n}");
                                         vTaskDelay(pdMS_TO_TICKS(100));
-                                        if (httpCode == HTTP_CODE_OK) {
+                                        if (httpCode_token == HTTP_CODE_OK) {
                                             String payload = http.getString();
                                             JsonDocument root;
                                             deserializeJson(root, payload);

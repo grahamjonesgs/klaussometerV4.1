@@ -185,49 +185,49 @@ int uv_color(float UV)
 {
   if(UV < 1)
     {
-      return (0x658D1B);
+      return 0x658D1B;
     }
   if(UV < 2)
     {
-      return (0x84BD00);
+      return 0x84BD00;
     }
   if(UV < 3)
     {
-      return (0x97D700);
+      return 0x97D700;
     }
   if(UV < 4)
     {
-      return (0xF7EA48);
+      return 0xF7EA48;
     }
   if(UV < 5)
     {
-      return (0xFCE300);
+      return 0xFCE300;
     }
   if(UV < 6)
     {
-      return (0xFFCD00);
+      return 0xFFCD00;
     }
   if(UV < 7)
     {
-      return (0xECA154);
+      return 0xECA154;
     }
   if(UV < 8)
     {
-      return (0xFF8200);
+      return 0xFF8200;
     }
   if(UV < 9)
     {
-      return (0xEF3340);
+      return 0xEF3340;
     }
   if(UV < 10)
     {
-      return (0xDA291C);
+      return 0xDA291C;
     }
   if(UV < 11)
     {
-      return (0xBF0D3E);
+      return 0xBF0D3E;
     }
-  return (0x4B1E88);
+  return 0x4B1E88;
 }
 
 // Sets all text field to defined color for day/night mode
