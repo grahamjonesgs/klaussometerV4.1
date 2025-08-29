@@ -114,7 +114,7 @@ void setup() {
     }
 
     pin_init();
-    touch_init();
+    //touch_init();
 
     // Init Display
     gfx->begin();
@@ -139,11 +139,11 @@ void setup() {
         lv_disp_drv_register(&disp_drv);
 
         /* Initialize the input device driver */
-        static lv_indev_drv_t indev_drv;
+        /*static lv_indev_drv_t indev_drv;
         lv_indev_drv_init(&indev_drv);
         indev_drv.type = LV_INDEV_TYPE_POINTER;
         indev_drv.read_cb = touch_read;
-        lv_indev_drv_register(&indev_drv);
+        lv_indev_drv_register(&indev_drv);*/
 
         ui_init();
 
@@ -382,13 +382,13 @@ void pin_init() {
 
     vTaskDelay(pdMS_TO_TICKS(100));
     digitalWrite(TOUCH_RST, LOW);
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
     digitalWrite(TOUCH_RST, HIGH);
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
     digitalWrite(TOUCH_RST, LOW);
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
     digitalWrite(TOUCH_RST, HIGH);
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
 // Initialise touch screen
