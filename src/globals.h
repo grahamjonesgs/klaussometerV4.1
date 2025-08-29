@@ -87,9 +87,6 @@ void errorPublish(const char* format, ...);
 
 // mqtt
 void update_temperature(char* recMessage, int index);
-//void update_humidity(char* recMessage, int index);
-//void update_battery(char* recMessage, int index);
-//void update_battery(char* recMessage, int index);
 void update_readings(char* recMessage, int index, int dataType);
 char* toLowercase(const char* source, char* buffer, size_t bufferSize);
 
