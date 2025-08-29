@@ -75,7 +75,7 @@ Arduino_ESP32RGBPanel* rgbpanel =
                               7 /* G2 */, 15 /* G3 */, 16 /* G4 */, 4 /* G5 */, 8 /* B0 */, 3 /* B1 */, 46 /* B2 */, 9 /* B3 */, 1 /* B4 */, 0 /* hsync_polarity */,
                               40 /* hsync_front_porch */, 8 /* hsync_pulse_width was 48 */, 128 /* hsync_back_porch */, 1 /* vsync_polarity */, 13 /* vsync_front_porch */,
                               8 /* vsync_pulse_width was 3 */, 45 /* vsync_back_porch */, 1 /* pclk_active_neg */, 12000000 /*was 16000000*/ /* prefer_speed */);
-Arduino_RGB_Display* gfx_new = new Arduino_RGB_Display(1024 /* width */, 600 /* height */, rgbpanel);
+Arduino_RGB_Display* gfx = new Arduino_RGB_Display(1024 /* width */, 600 /* height */, rgbpanel);
 
 // Touch config
 TAMC_GT911 ts = TAMC_GT911(I2C_SDA_PIN, I2C_SCL_PIN, TOUCH_INT, TOUCH_RST, 1024, 600);
@@ -116,11 +116,11 @@ void setup() {
     touch_init();
 
     // Init Display
-    gfx_new->begin();
-    gfx_new->fillScreen(BLACK);
+    gfx->begin();
+    gfx->fillScreen(BLACK);
     lv_init();
-    screenWidth = gfx_new->width();
-    screenHeight = gfx_new->height();
+    screenWidth = gfx->width();
+    screenHeight = gfx->height();
     disp_draw_buf = (lv_color_t*)heap_caps_malloc(sizeof(lv_color_t) * screenWidth * 10, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 
     // Create display buffer
@@ -360,7 +360,7 @@ void my_disp_flush(lv_disp_drv_t* disp, const lv_area_t* area, lv_color_t* color
 #if (LV_COLOR_16_SWAP != 0)
     gfx_new->draw16bitBeRGBBitmap(area->x1, area->y1, (uint16_t*)&color_p->full, w, h);
 #else
-    gfx_new->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t*)&color_p->full, w, h);
+    gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t*)&color_p->full, w, h);
 #endif
 
     lv_disp_flush_ready(disp);
