@@ -8,7 +8,7 @@ extern MqttClient mqttClient;
 extern SemaphoreHandle_t mqttMutex;
 extern Readings readings[];
 extern int numberOfReadings;
-
+ 
 // Get mqtt messages
 void receive_mqtt_messages_t(void* pvParams) {
     int messageSize = 0;

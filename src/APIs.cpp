@@ -152,7 +152,7 @@ const char* wmoToText(int code, bool isDay) {
     case 1:
         return isDay ? "Mainly sunny" : "Mostly clear";
     case 2:
-        return isDay ? "Partly cloudy" : "Partly cloudy";
+        return "Partly cloudy";
     case 3:
         return "Overcast";
     case 45:
@@ -304,9 +304,9 @@ void get_current_solar_t(void* pvParameters) {
                                                                  solar_passhash + "\"\n}");
                                         vTaskDelay(pdMS_TO_TICKS(100));
                                         if (httpCode_token == HTTP_CODE_OK) {
-                                            String payload = http.getString();
+                                            String payload_token = http.getString();
                                             JsonDocument root;
-                                            deserializeJson(root, payload);
+                                            deserializeJson(root, payload_token);
                                             if (root["access_token"].is<const char*>()) {
                                                 const char* rec_token = root["access_token"];
                                                 logAndPublish("Solar token "

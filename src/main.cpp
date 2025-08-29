@@ -404,12 +404,11 @@ void touch_read(lv_indev_drv_t* indev_driver, lv_indev_data_t* data) {
         touch_last_x = map(ts.points[0].x, 0, 1024, 0, SCREEN_W);
         touch_last_y = map(ts.points[0].y, 0, 750, 0, SCREEN_H);
         data->point.x = touch_last_x;
-        data->point.x = touch_last_x;
+        data->point.y = touch_last_y;
         data->state = LV_INDEV_STATE_PR;
 
         ts.isTouched = false;
     } else {
-        data->point.x = touch_last_x;
         data->point.x = touch_last_x;
         data->state = LV_INDEV_STATE_REL;
     }
