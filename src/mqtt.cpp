@@ -1,5 +1,5 @@
 #include <globals.h>
-#include <klaussometer.h>
+//#include <klaussometer.h>
 
 #include <cctype>
 #include <cstring>

@@ -46,6 +46,7 @@ WiFiUDP ntpUDP;
 SemaphoreHandle_t mqttMutex;
 SemaphoreHandle_t httpMutex;
 
+
 // Global variables
 time_t statusChangeTime = 0;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", TIME_OFFSET, 60000);

@@ -16,9 +16,9 @@
 #include <Wire.h>
 
 struct Readings {                    // Array to hold the incoming measurement
-    const char description[50];      // Currently set to 50 chars long
-    const char topic[50];            // MQTT topic
-    char output[10];                 // To be output to screen
+    const char description[CHAR_LEN];      // Currently set to 50 chars long
+    const char topic[CHAR_LEN];            // MQTT topic
+    char output[CHAR_LEN];                 // To be output to screen
     float currentValue;              // Current value received
     float lastValue[STORED_READING]; // Defined that the zeroth element is the oldest
     uint8_t changeChar;              // To indicate change in status
